@@ -1,0 +1,46 @@
+name: evolua_pro
+description: "EvoluaPRO - Gerador de evoluções de enfermagem com IA. Multiplataforma (Android, iOS, Windows, macOS, Linux e Web)."
+publish_to: "none"
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State management
+  provider: ^6.1.2
+
+  # Persistence (cross-platform: Android, iOS, Windows, macOS, Linux, Web)
+  shared_preferences: ^2.2.3
+
+  # AI / LLM
+  google_generative_ai: ^0.4.6
+
+  # Env variables
+  flutter_dotenv: ^5.1.0
+
+  # UI
+  google_fonts: ^6.2.1
+  intl: ^0.19.0
+
+  # Utilities
+  uuid: ^4.4.0
+
+  # Auth / security
+  crypto: ^3.0.3
+  flutter_secure_storage: ^9.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env

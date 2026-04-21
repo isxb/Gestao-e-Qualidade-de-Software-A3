@@ -1,0 +1,76 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import 'providers/auth_provider.dart';
+import 'screens/auth/change_password_screen.dart';
+import 'screens/auth/login_screen.dart';
+import 'screens/home_screen.dart';
+import 'theme/app_colors.dart';
+import 'theme/app_theme.dart';
+
+class EvoluaProApp extends StatelessWidget {
+  const EvoluaProApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'EvoluaPRO',
+      debugShowCheckedModeBanner: false,
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.system,
+      home: const _AuthGate(),
+      builder: (BuildContext context, Widget? child) {
+        final MediaQueryData mq = MediaQuery.of(context);
+        final double clamped = mq.textScaler.scale(1).clamp(0.9, 1.2);
+        return MediaQuery(
+          data: mq.copyWith(textScaler: TextScaler.linear(clamped)),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
+    );
+  }
+}
+
+/// Portão que decide qual tela exibir com base no estado de autenticação.
+/// - [AuthStatus.initializing] → splash com logo
+/// - [AuthStatus.signedOut]    → tela de login
+/// - [AuthStatus.signedIn] + mustChangePassword → troca obrigatória
+/// - [AuthStatus.signedIn]     → home
+class _AuthGate extends StatelessWidget {
+  const _AuthGate();
+
+  @override
+  Widget build(BuildContext context) {
+    final AuthProvider auth = context.watch<AuthProvider>();
+    switch (auth.status) {
+      case AuthStatus.initializing:
+        return const _SplashView();
+      case AuthStatus.signedOut:
+        return const LoginScreen();
+      case AuthStatus.signedIn:
+        if (auth.mustChangePassword) {
+          return const ChangePasswordScreen(forced: true);
+        }
+        return const HomeScreen();
+    }
+  }
+}
+
+class _SplashView extends StatelessWidget {
+  const _SplashView();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: DecoratedBox(
+        decoration: BoxDecoration(gradient: AppColors.brandGradient),
+        child: Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+        ),
+      ),
+    );
+  }
+}
