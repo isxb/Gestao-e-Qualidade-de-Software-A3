@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/evolution_provider.dart';
+import '../../services/export_service.dart';
 import '../../utils/markdown_bold.dart';
 import '../../widgets/action_button.dart';
 
@@ -43,6 +44,9 @@ class _StepOutputState extends State<StepOutput> {
   @override
   Widget build(BuildContext context) {
     final EvolutionProvider p = context.watch<EvolutionProvider>();
+    final String pName = p.form.pacienteNome.trim().isEmpty 
+        ? 'Paciente Não Identificado' 
+        : p.form.pacienteNome.trim();
 
     switch (p.status) {
       case GenerationStatus.loading:
@@ -56,6 +60,7 @@ class _StepOutputState extends State<StepOutput> {
       case GenerationStatus.success:
         return _SuccessState(
           text: p.generatedText,
+          patientName: pName,
           saved: _saved,
           onCopy: () => _copy(p.generatedText),
           onSave: () => _save(p),
@@ -91,7 +96,7 @@ class _LoadingState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'O sistema está processando os dados e formatando a evolução de acordo com as normas da instituição.',
+              'O sistema está processando os dados e formatando a evolução.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
@@ -202,7 +207,7 @@ class _IdleState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Clique no botão abaixo para gerar a evolução de enfermagem baseada no formulário.',
+              'Clique no botão abaixo para gerar a evolução de enfermagem.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
@@ -223,6 +228,7 @@ class _IdleState extends StatelessWidget {
 class _SuccessState extends StatefulWidget {
   const _SuccessState({
     required this.text,
+    required this.patientName,
     required this.saved,
     required this.onCopy,
     required this.onSave,
@@ -232,6 +238,7 @@ class _SuccessState extends StatefulWidget {
   });
 
   final String text;
+  final String patientName;
   final bool saved;
   final VoidCallback onCopy;
   final VoidCallback onSave;
@@ -267,6 +274,50 @@ class _SuccessStateState extends State<_SuccessState> {
     super.dispose();
   }
 
+  void _showExportOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  'Exportar Documento',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 32),
+                  title: const Text('Salvar como PDF'),
+                  subtitle: const Text('Gera um documento pronto para impressão.'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    ExportService.exportToPdf(widget.text, widget.patientName);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.text_snippet_rounded, color: Colors.blue, size: 32),
+                  title: const Text('Compartilhar Texto'),
+                  subtitle: const Text('Envia para outros apps (WhatsApp, Word, Email).'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    ExportService.exportToText(widget.text, widget.patientName);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final ColorScheme scheme = Theme.of(context).colorScheme;
@@ -294,7 +345,7 @@ class _SuccessStateState extends State<_SuccessState> {
                 child: Text(
                   widget.saved
                       ? 'Evolução salva no banco de dados.'
-                      : 'Evolução gerada com sucesso. Você pode copiar, editar ou salvar abaixo.',
+                      : 'Evolução gerada com sucesso. Você pode exportar, copiar ou salvar abaixo.',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: const Color(0xFF1F5B3B),
                         fontWeight: FontWeight.w600,
@@ -353,13 +404,13 @@ class _SuccessStateState extends State<_SuccessState> {
           runSpacing: 10,
           children: <Widget>[
             ActionButton(
-              label: 'Voltar ao formulário',
+              label: 'Voltar',
               kind: ActionButtonKind.subtle,
               icon: Icons.arrow_back_rounded,
               onPressed: widget.onEdit,
             ),
             ActionButton(
-              label: _editing ? 'Concluir edição' : 'Editar texto',
+              label: _editing ? 'Concluir edição' : 'Editar',
               kind: ActionButtonKind.secondary,
               icon: _editing ? Icons.check_rounded : Icons.edit_rounded,
               onPressed: () {
@@ -377,9 +428,15 @@ class _SuccessStateState extends State<_SuccessState> {
               icon: Icons.copy_rounded,
               onPressed: widget.onCopy,
             ),
+            ActionButton(
+              label: 'Exportar',
+              kind: ActionButtonKind.secondary,
+              icon: Icons.download_rounded,
+              onPressed: () => _showExportOptions(context),
+            ),
             if (!widget.saved)
               ActionButton(
-                label: 'Salvar no Banco',
+                label: 'Salvar Banco',
                 kind: ActionButtonKind.success,
                 icon: Icons.save_rounded,
                 onPressed: widget.onSave,

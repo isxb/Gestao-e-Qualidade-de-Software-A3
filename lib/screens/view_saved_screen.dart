@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../models/saved_evolution.dart';
 import '../providers/evolution_provider.dart';
+import '../services/export_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/markdown_bold.dart';
 import '../widgets/action_button.dart';
@@ -89,6 +90,50 @@ class _ViewSavedScreenState extends State<ViewSavedScreen> {
     );
   }
 
+  void _showExportOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext ctx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Text(
+                  'Exportar Documento',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 32),
+                  title: const Text('Salvar como PDF'),
+                  subtitle: const Text('Gera um documento pronto para impressão.'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    ExportService.exportToPdf(_current.text, _current.patientName);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.text_snippet_rounded, color: Colors.blue, size: 32),
+                  title: const Text('Compartilhar Texto'),
+                  subtitle: const Text('Envia para outros apps (WhatsApp, Word, Email).'),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    ExportService.exportToText(_current.text, _current.patientName);
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -147,6 +192,7 @@ class _ViewSavedScreenState extends State<ViewSavedScreen> {
                   },
                   onSave: _save,
                   onCopy: _copy,
+                  onExport: () => _showExportOptions(context),
                   onDelete: _delete,
                 ),
                 const SizedBox(height: 14),
@@ -183,6 +229,7 @@ class _Toolbar extends StatelessWidget {
     required this.onToggleEdit,
     required this.onSave,
     required this.onCopy,
+    required this.onExport,
     required this.onDelete,
   });
 
@@ -190,6 +237,7 @@ class _Toolbar extends StatelessWidget {
   final VoidCallback onToggleEdit;
   final VoidCallback onSave;
   final VoidCallback onCopy;
+  final VoidCallback onExport;
   final VoidCallback onDelete;
 
   @override
@@ -218,6 +266,12 @@ class _Toolbar extends StatelessWidget {
           kind: ActionButtonKind.primary,
           icon: Icons.copy_rounded,
           onPressed: onCopy,
+        ),
+        ActionButton(
+          label: 'Exportar',
+          kind: ActionButtonKind.secondary,
+          icon: Icons.download_rounded,
+          onPressed: onExport,
         ),
         ActionButton(
           label: 'Excluir',
