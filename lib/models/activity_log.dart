@@ -193,7 +193,7 @@ extension ActivityTypeX on ActivityType {
       case ActivityType.evolutionStarted:
         return 'Nova evolução iniciada';
       case ActivityType.evolutionGenerated:
-        return 'Evolução gerada pela IA';
+  return 'Evolução gerada';
       case ActivityType.evolutionGenerationFailed:
         return 'Falha na geração';
       case ActivityType.evolutionSaved:

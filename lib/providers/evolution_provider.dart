@@ -8,26 +8,22 @@ import '../models/infusion.dart';
 import '../models/medication.dart';
 import '../models/saved_evolution.dart';
 import '../models/user.dart';
-import '../services/gemini_service.dart';
+import '../services/evolution_generator.dart';
 import '../services/log_service.dart';
-import '../services/prompt_builder.dart';
 import '../services/storage_service.dart';
 
 enum GenerationStatus { idle, loading, success, error }
 
 class EvolutionProvider extends ChangeNotifier {
   EvolutionProvider({
-    GeminiService? gemini,
-    PromptBuilder? promptBuilder,
+    EvolutionGenerator? generator,
     StorageService? storage,
     LogService? logs,
-  })  : _gemini = gemini ?? GeminiService(),
-        _promptBuilder = promptBuilder ?? const PromptBuilder(),
+  })  : _generator = generator ?? const EvolutionGenerator(),
         _storage = storage ?? StorageService.instance,
         _logs = logs ?? LogService.instance;
 
-  final GeminiService _gemini;
-  final PromptBuilder _promptBuilder;
+  final EvolutionGenerator _generator;
   final StorageService _storage;
   final LogService _logs;
   final Uuid _uuid = const Uuid();
@@ -54,7 +50,6 @@ class EvolutionProvider extends ChangeNotifier {
   GenerationStatus get status => _status;
   String? get errorMessage => _errorMessage;
   bool get isLoading => _status == GenerationStatus.loading;
-  bool get hasApiKey => _gemini.hasApiKey;
 
   /// Ajuste o usuário ativo para que os eventos de evolução sejam
   /// atribuídos corretamente. Chamado pelo AuthProvider via listener.
@@ -87,7 +82,7 @@ class EvolutionProvider extends ChangeNotifier {
     Map<String, dynamic> metadata = const <String, dynamic>{},
   }) async {
     final AppUser? u = _currentUser;
-    if (u == null) return; // sem usuário, não logamos (ex.: testes)
+    if (u == null) return; 
     await _logs.record(
       userId: u.id,
       userDisplayName: u.displayName,
@@ -246,32 +241,26 @@ class EvolutionProvider extends ChangeNotifier {
 
     final Stopwatch sw = Stopwatch()..start();
     try {
-      final String prompt = _promptBuilder.build(
+      // Pequeno atraso artificial apenas para feedback visual na interface
+      await Future.delayed(const Duration(milliseconds: 600));
+
+      final String text = _generator.generate(
         form: _form,
         medications: _medications,
         infusions: _infusions,
       );
-      final String text = await _gemini.generate(prompt);
+
       sw.stop();
       _generatedText = text;
       _status = GenerationStatus.success;
       await _log(
         ActivityType.evolutionGenerated,
-        'Evolução gerada (${text.length} caracteres, ${sw.elapsedMilliseconds}ms).',
+        'Evolução gerada automaticamente (${text.length} caracteres).',
         metadata: <String, dynamic>{
           'chars': text.length,
           'durationMs': sw.elapsedMilliseconds,
           'patientName': _form.pacienteNome,
         },
-      );
-    } on GeminiServiceException catch (e) {
-      sw.stop();
-      _errorMessage = e.message;
-      _status = GenerationStatus.error;
-      await _log(
-        ActivityType.evolutionGenerationFailed,
-        'Falha: ${e.message}',
-        metadata: <String, dynamic>{'durationMs': sw.elapsedMilliseconds},
       );
     } catch (e) {
       sw.stop();

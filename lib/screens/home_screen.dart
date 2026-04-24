@@ -16,8 +16,6 @@ import 'database_screen.dart';
 import 'generator_screen.dart';
 import 'settings_screen.dart';
 
-/// Dashboard principal para usuários autenticados. Adapta-se ao papel:
-/// admins ganham atalho destacado para o painel administrativo.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -89,10 +87,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 displayName: auth.currentUser?.displayName ?? '',
                 isAdmin: auth.isAdmin,
               ),
-              if (!evo.hasApiKey) ...<Widget>[
-                const SizedBox(height: 18),
-                const _ApiStatusBanner(),
-              ],
               if (auth.isAdmin) ...<Widget>[
                 const SizedBox(height: 20),
                 _AdminShortcut(),
@@ -240,10 +234,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 }
-
-// ============================================================
-// Components
-// ============================================================
 
 class _GreetingHero extends StatelessWidget {
   const _GreetingHero({required this.displayName, required this.isAdmin});
@@ -428,9 +418,9 @@ class _QuickActions extends StatelessWidget {
               ),
             ),
             _ActionCard(
-              icon: Icons.tune_rounded,
-              title: 'Configurações',
-              subtitle: 'API Gemini, tema e preferências',
+              icon: Icons.info_outline_rounded,
+              title: 'Sobre o Sistema',
+              subtitle: 'Versão e informações de uso',
               gradient: const LinearGradient(
                 colors: <Color>[AppColors.amber, AppColors.pink],
               ),
@@ -590,60 +580,3 @@ class _RecentRow extends StatelessWidget {
     return s.length > 90 ? '${s.substring(0, 90)}...' : s;
   }
 }
-
-class _ApiStatusBanner extends StatelessWidget {
-  const _ApiStatusBanner();
-  @override
-  Widget build(BuildContext context) {
-    final ColorScheme scheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.amberLight,
-        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-        border: Border.all(color: AppColors.warning.withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          const Icon(Icons.warning_amber_rounded,
-              color: AppColors.warningDark),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'API do Gemini não configurada',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppColors.warningDark,
-                      ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Toque em Configurações para informar sua chave e habilitar a geração.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.warningDark,
-                      ),
-                ),
-              ],
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).push(MaterialPageRoute<void>(
-                builder: (_) => const SettingsScreen(),
-              ));
-            },
-            style: TextButton.styleFrom(foregroundColor: scheme.primary),
-            child: const Text('Configurar'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// (Re-exportado só para manter uma única referência visual caso
-/// seja importado em outras partes no futuro.)
-typedef AppActivityLog = ActivityLog;

@@ -5,7 +5,6 @@ import 'package:provider/provider.dart';
 import '../../providers/evolution_provider.dart';
 import '../../utils/markdown_bold.dart';
 import '../../widgets/action_button.dart';
-import '../settings_screen.dart';
 
 class StepOutput extends StatefulWidget {
   const StepOutput({super.key});
@@ -92,7 +91,7 @@ class _LoadingState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'A IA está analisando os dados e redigindo o relatório de acordo com as normas do COFEN.',
+              'O sistema está processando os dados e formatando a evolução de acordo com as normas da instituição.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
@@ -117,8 +116,6 @@ class _ErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ColorScheme scheme = Theme.of(context).colorScheme;
-    final bool missingKey = message.toLowerCase().contains('api key') ||
-        message.toLowerCase().contains('chave');
 
     return Card(
       child: Padding(
@@ -166,17 +163,6 @@ class _ErrorState extends StatelessWidget {
                   icon: Icons.arrow_back_rounded,
                   onPressed: onBack,
                 ),
-                if (missingKey)
-                  ActionButton(
-                    label: 'Configurar API Key',
-                    kind: ActionButtonKind.primary,
-                    icon: Icons.key_rounded,
-                    onPressed: () => Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) => const SettingsScreen(),
-                      ),
-                    ),
-                  ),
                 ActionButton(
                   label: 'Tentar Novamente',
                   kind: ActionButtonKind.primary,
@@ -216,7 +202,7 @@ class _IdleState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Clique no botão abaixo para que a IA elabore a evolução de enfermagem.',
+              'Clique no botão abaixo para gerar a evolução de enfermagem baseada no formulário.',
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),

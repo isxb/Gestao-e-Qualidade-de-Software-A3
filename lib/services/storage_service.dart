@@ -7,15 +7,6 @@ import '../models/activity_log.dart';
 import '../models/saved_evolution.dart';
 import '../models/user.dart';
 
-/// Camada de persistência cross-platform.
-///
-/// - Evoluções, usuários e logs → `shared_preferences` (JSON).
-/// - Sessão ativa → `flutter_secure_storage` (Keychain/KeyStore/DPAPI).
-/// - API key → `shared_preferences` (override local).
-///
-/// Tudo local ao dispositivo. A implementação foi desenhada para que
-/// no futuro apenas este arquivo precise mudar para rotear para um
-/// backend remoto, sem tocar no resto do app.
 class StorageService {
   StorageService._();
 
@@ -23,7 +14,6 @@ class StorageService {
 
   // --- Keys ---
   static const String _kEvolutionsKey = 'evoluaPro_evolutions';
-  static const String _kApiKeyKey = 'evoluaPro_api_key';
   static const String _kUsersKey = 'evoluaPro_users';
   static const String _kLogsKey = 'evoluaPro_logs';
   static const String _kBootstrappedKey = 'evoluaPro_bootstrapped';
@@ -76,18 +66,6 @@ class StorageService {
       items.map((SavedEvolution e) => e.toJson()).toList(),
     );
     await _store.setString(_kEvolutionsKey, raw);
-  }
-
-  // ============================================================
-  // API Key
-  // ============================================================
-  String? loadApiKey() => _store.getString(_kApiKeyKey);
-  Future<void> saveApiKey(String key) async {
-    await _store.setString(_kApiKeyKey, key.trim());
-  }
-
-  Future<void> clearApiKey() async {
-    await _store.remove(_kApiKeyKey);
   }
 
   // ============================================================
@@ -150,7 +128,6 @@ class StorageService {
   }
 
   Future<void> saveLogs(List<ActivityLog> logs) async {
-    // Mantém os mais recentes (ordem decrescente esperada).
     final List<ActivityLog> trimmed =
         logs.length > _maxLogs ? logs.sublist(0, _maxLogs) : logs;
     final String raw =
@@ -188,7 +165,6 @@ class StorageService {
     try {
       await _secure.delete(key: _kSessionKey);
     } catch (_) {
-      // ignora falhas silenciosamente — ambiente de teste ou web.
     }
   }
 }
