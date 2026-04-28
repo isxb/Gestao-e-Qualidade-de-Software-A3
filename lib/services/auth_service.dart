@@ -277,6 +277,91 @@ class AuthService {
   }
 
   // ============================================================
+  // Auto-cadastro (público — sem necessidade de admin)
+  // ============================================================
+
+  /// Cadastra um novo usuário comum a partir da tela pública de registro.
+  /// Sempre cria com [UserRole.standard] e sem flag de senha temporária —
+  /// é o próprio usuário que define a senha. Apenas o admin pode promover
+  /// alguém a administrador depois (via painel).
+  Future<AppUser> registerSelf({
+    required String username,
+    required String displayName,
+    required String email,
+    required String password,
+  }) async {
+    final String normalizedUser = username.trim().toLowerCase();
+    final String normalizedEmail = email.trim();
+    final String trimmedName = displayName.trim();
+
+    if (normalizedUser.isEmpty) {
+      throw AuthException('empty', 'Informe um nome de usuário.');
+    }
+    if (!RegExp(r'^[a-z0-9_.-]{3,32}$').hasMatch(normalizedUser)) {
+      throw AuthException(
+        'invalid-username',
+        'Usuário deve conter apenas letras minúsculas, números, "_" ou ".", e ter 3 a 32 caracteres.',
+      );
+    }
+    if (trimmedName.length < 2) {
+      throw AuthException('invalid-name', 'Informe seu nome completo.');
+    }
+    if (!_isValidEmail(normalizedEmail)) {
+      throw AuthException('invalid-email', 'Informe um e-mail válido.');
+    }
+    _validatePasswordPolicy(password);
+
+    final List<AppUser> users = _storage.loadUsers();
+    if (users.any((AppUser u) => u.username.toLowerCase() == normalizedUser)) {
+      throw AuthException('duplicate', 'Já existe um usuário com esse nome.');
+    }
+    if (users.any(
+      (AppUser u) => u.email.toLowerCase() == normalizedEmail.toLowerCase(),
+    )) {
+      throw AuthException(
+        'duplicate-email',
+        'Já existe uma conta com esse e-mail.',
+      );
+    }
+
+    final String salt = CryptoService.generateSalt();
+    final String hash = CryptoService.hashPassword(
+      password: password,
+      saltBase64: salt,
+    );
+
+    final AppUser user = AppUser(
+      id: _uuid.v4(),
+      username: normalizedUser,
+      displayName: trimmedName,
+      email: normalizedEmail,
+      role: UserRole.standard,
+      passwordHash: hash,
+      salt: salt,
+      iterations: CryptoService.defaultIterations,
+      createdAt: DateTime.now(),
+      mustChangePassword: false,
+    );
+
+    await _storage.saveUsers(<AppUser>[...users, user]);
+
+    await _logs.record(
+      userId: user.id,
+      userDisplayName: user.displayName,
+      type: ActivityType.userCreated,
+      description: 'Cadastro próprio pelo formulário público.',
+      metadata: <String, dynamic>{'selfRegistered': true},
+    );
+
+    return user;
+  }
+
+  bool _isValidEmail(String email) {
+    if (email.isEmpty) return false;
+    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
+  }
+
+  // ============================================================
   // Troca/reset de senha
   // ============================================================
   Future<AppUser> changeOwnPassword({

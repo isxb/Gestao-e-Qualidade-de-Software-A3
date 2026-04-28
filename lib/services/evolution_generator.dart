@@ -70,7 +70,7 @@ class EvolutionGenerator {
     sb.writeln('');
 
     // PELE
-    sb.writeln('**#Integridade cutânea:** A pele apresenta-se ${joinOrFallback(form.peleAspecto, 'íntegra')}. ${form.lesoes.isEmpty ? 'Não foram evidenciadas lesões por pressão' : 'Apresenta: ' + form.lesoes.join(', ')}. A aplicação da escala de Braden resulta em ${form.bradenTotal} pontos, o que caracteriza o paciente com ${form.bradenRisco.toLowerCase()} para o desenvolvimento de lesões por pressão, sendo instituídas as medidas preventivas protocolares da instituição.');
+    sb.writeln('**#Integridade cutânea:** A pele apresenta-se ${joinOrFallback(form.peleAspecto, 'íntegra')}. ${form.lesoes.isEmpty ? 'Não foram evidenciadas lesões por pressão' : 'Apresenta: ${form.lesoes.join(', ')}'}. A aplicação da escala de Braden resulta em ${form.bradenTotal} pontos, o que caracteriza o paciente com ${form.bradenRisco.toLowerCase()} para o desenvolvimento de lesões por pressão, sendo instituídas as medidas preventivas protocolares da instituição.');
     sb.writeln('');
 
     // DISPOSITIVOS

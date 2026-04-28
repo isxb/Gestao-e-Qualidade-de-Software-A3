@@ -3,34 +3,54 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
-import '../../services/auth_service.dart' show AuthException;
+import '../../services/crypto_service.dart';
 import '../../services/google_auth_service.dart';
+import '../../services/auth_service.dart' show AuthException;
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/google_sign_in_button.dart';
-import 'register_screen.dart';
 
-/// Tela de entrada do sistema. Design moderno com gradiente suave,
-/// cartão elevado centralizado no desktop e hero full-screen no mobile.
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+/// Página pública de cadastro de usuário comum.
+/// Reaproveita a estética da tela de login (gradient suave + blobs +
+/// card central). Usuários criados aqui são sempre [UserRole.standard].
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _RegisterScreenState extends State<RegisterScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameCtrl = TextEditingController();
+  final TextEditingController _emailCtrl = TextEditingController();
   final TextEditingController _userCtrl = TextEditingController();
   final TextEditingController _passCtrl = TextEditingController();
+  final TextEditingController _confirmCtrl = TextEditingController();
+
   bool _obscure = true;
+  bool _obscureConfirm = true;
   bool _submitting = false;
+  String _password = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _passCtrl.addListener(() {
+      if (_password != _passCtrl.text) {
+        setState(() => _password = _passCtrl.text);
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _nameCtrl.dispose();
+    _emailCtrl.dispose();
     _userCtrl.dispose();
     _passCtrl.dispose();
+    _confirmCtrl.dispose();
     super.dispose();
   }
 
@@ -40,8 +60,10 @@ class _LoginScreenState extends State<LoginScreen> {
     FocusScope.of(context).unfocus();
     setState(() => _submitting = true);
     final AuthProvider auth = context.read<AuthProvider>();
-    final bool ok = await auth.login(
+    final bool ok = await auth.register(
       username: _userCtrl.text.trim(),
+      displayName: _nameCtrl.text.trim(),
+      email: _emailCtrl.text.trim(),
       password: _passCtrl.text,
     );
     if (!mounted) return;
@@ -49,6 +71,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!ok) {
       HapticFeedback.mediumImpact();
     }
+    // Em sucesso, o AuthGate redireciona automaticamente para a Home.
   }
 
   Future<void> _handleGoogle() async {
@@ -56,33 +79,29 @@ class _LoginScreenState extends State<LoginScreen> {
       await GoogleAuthService.instance.signIn();
     } on AuthException catch (e) {
       if (!mounted) return;
-      showDialog<void>(
-        context: context,
-        builder: (BuildContext ctx) => AlertDialog(
-          title: const Text('Login com Google'),
-          content: Text(
-            '${e.message}\n\n'
-            'Para habilitar é preciso configurar credenciais OAuth no '
-            'Google Cloud Console e plugar o fluxo no app. Lembre-se '
-            'que isso passa a depender de internet — a proposta '
-            '"100% offline" do EvoluaPRO precisa ser revista quando '
-            'ativar.',
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Entendi'),
-            ),
-          ],
-        ),
-      );
+      _showGoogleNotConfigured(e.message);
     }
   }
 
-  void _openRegister() {
-    context.read<AuthProvider>().clearError();
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const RegisterScreen()),
+  void _showGoogleNotConfigured(String message) {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('Login com Google'),
+        content: Text(
+          '$message\n\n'
+          'Para habilitar é preciso configurar credenciais OAuth no Google '
+          'Cloud Console e plugar o fluxo no app. Lembre-se que isso passa '
+          'a depender de internet — a proposta "100% offline" do EvoluaPRO '
+          'precisa ser revista quando ativar.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Entendi'),
+          ),
+        ],
+      ),
     );
   }
 
@@ -93,17 +112,23 @@ class _LoginScreenState extends State<LoginScreen> {
     final Size size = MediaQuery.sizeOf(context);
     final bool isWide = size.width >= AppTheme.tabletBreakpoint;
 
-    final Widget hero = _LoginHero(isDark: isDark);
-    final Widget card = _LoginCard(
+    final Widget hero = _RegisterHero(isDark: isDark);
+    final Widget card = _RegisterCard(
       formKey: _formKey,
+      nameCtrl: _nameCtrl,
+      emailCtrl: _emailCtrl,
       userCtrl: _userCtrl,
       passCtrl: _passCtrl,
+      confirmCtrl: _confirmCtrl,
       obscure: _obscure,
+      obscureConfirm: _obscureConfirm,
       toggleObscure: () => setState(() => _obscure = !_obscure),
+      toggleObscureConfirm: () =>
+          setState(() => _obscureConfirm = !_obscureConfirm),
       onSubmit: _submit,
       onGoogle: _handleGoogle,
-      onRegister: _openRegister,
       submitting: _submitting,
+      password: _password,
     );
 
     return Scaffold(
@@ -114,18 +139,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: <Color>[
-                    Color(0xFF0E1622),
-                    Color(0xFF17202F),
-                    Color(0xFF1F2A3D),
+                    Color(0xFF0B1422),
+                    Color(0xFF152133),
+                    Color(0xFF1D2C42),
                   ],
                 )
               : const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: <Color>[
-                    Color(0xFFF6F8FB),
-                    Color(0xFFEEF2F7),
-                    Color(0xFFE6EEEA),
+                    Color(0xFFF6F9FC),
+                    Color(0xFFEDF3F8),
+                    Color(0xFFD4F0EC),
                   ],
                 ),
         ),
@@ -133,34 +158,50 @@ class _LoginScreenState extends State<LoginScreen> {
           children: <Widget>[
             const _DecorBlobs(),
             SafeArea(
-              child: isWide
-                  ? Row(
-                      children: <Widget>[
-                        Expanded(child: hero),
-                        Expanded(
-                          child: Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 460),
-                              child: Padding(
-                                padding: const EdgeInsets.all(28),
-                                child: card,
+              child: Stack(
+                children: <Widget>[
+                  Positioned(
+                    top: 8,
+                    left: 8,
+                    child: IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: Icon(
+                        Icons.arrow_back_rounded,
+                        color: isDark ? Colors.white : AppColors.lightText,
+                      ),
+                      tooltip: 'Voltar para o login',
+                    ),
+                  ),
+                  isWide
+                      ? Row(
+                          children: <Widget>[
+                            Expanded(child: hero),
+                            Expanded(
+                              child: Center(
+                                child: ConstrainedBox(
+                                  constraints:
+                                      const BoxConstraints(maxWidth: 480),
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(28),
+                                    child: card,
+                                  ),
+                                ),
                               ),
                             ),
+                          ],
+                        )
+                      : SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(20, 56, 20, 20),
+                          child: Column(
+                            children: <Widget>[
+                              _RegisterHero(isDark: isDark, compact: true),
+                              const SizedBox(height: 24),
+                              card,
+                            ],
                           ),
                         ),
-                      ],
-                    )
-                  : SingleChildScrollView(
-                      padding: const EdgeInsets.all(20),
-                      child: Column(
-                        children: <Widget>[
-                          const SizedBox(height: 12),
-                          _LoginHero(isDark: isDark, compact: true),
-                          const SizedBox(height: 24),
-                          card,
-                        ],
-                      ),
-                    ),
+                ],
+              ),
             ),
           ],
         ),
@@ -169,26 +210,25 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-class _LoginHero extends StatelessWidget {
-  const _LoginHero({required this.isDark, this.compact = false});
+class _RegisterHero extends StatelessWidget {
+  const _RegisterHero({required this.isDark, this.compact = false});
   final bool isDark;
   final bool compact;
 
   @override
   Widget build(BuildContext context) {
-    final Color onDark = Colors.white;
-    final Color fg = isDark ? onDark : AppColors.lightText;
+    final Color fg = isDark ? Colors.white : AppColors.lightText;
     if (compact) {
       return Column(
         children: <Widget>[
           AppLogoLockup(
             logoSize: 52,
-            subtitle: 'Evoluções clínicas com IA',
+            subtitle: 'Crie sua conta',
             color: fg,
           ),
           const SizedBox(height: 14),
           Text(
-            'Entre para continuar o atendimento.',
+            'Leva menos de um minuto.',
             textAlign: TextAlign.center,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: fg.withValues(alpha: 0.75),
@@ -210,7 +250,7 @@ class _LoginHero extends StatelessWidget {
           ),
           const SizedBox(height: 36),
           Text(
-            'Evoluções de enfermagem,\nmais rápidas e precisas.',
+            'Crie sua conta\ne acelere seus plantões.',
             style: Theme.of(context).textTheme.displayMedium?.copyWith(
                   color: fg,
                   height: 1.1,
@@ -218,61 +258,16 @@ class _LoginHero extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'Geração assistida por IA, histórico auditável e '
-            'fluxos pensados para o plantão. Acesse com a sua '
-            'conta para continuar.',
+            'Você está a poucos campos de gerar evoluções de enfermagem '
+            'estruturadas em segundos. Os dados ficam salvos com '
+            'segurança no seu dispositivo.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                   color: fg.withValues(alpha: 0.78),
                   height: 1.55,
                 ),
           ),
-          const SizedBox(height: 32),
-          const _FeatureBullets(),
         ],
       ),
-    );
-  }
-}
-
-class _FeatureBullets extends StatelessWidget {
-  const _FeatureBullets();
-  @override
-  Widget build(BuildContext context) {
-    final List<(IconData, String)> items = <(IconData, String)>[
-      (Icons.shield_moon_rounded, 'Login seguro com bloqueio automático'),
-      (Icons.timeline_rounded, 'Auditoria completa por profissional'),
-      (Icons.bolt_rounded, 'Geração em poucos segundos'),
-    ];
-    final bool isDark = Theme.of(context).brightness == Brightness.dark;
-    final Color fg = isDark ? Colors.white : AppColors.lightText;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: <Widget>[
-        for (final (IconData i, String t) in items)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Row(
-              children: <Widget>[
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    gradient: AppColors.brandGradient,
-                    borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-                  ),
-                  child: Icon(i, color: Colors.white, size: 18),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  t,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: fg.withValues(alpha: 0.85),
-                      ),
-                ),
-              ],
-            ),
-          ),
-      ],
     );
   }
 }
@@ -288,7 +283,7 @@ class _DecorBlobs extends StatelessWidget {
             top: -120,
             right: -80,
             child: _Blob(
-              color: AppColors.teal.withValues(alpha: 0.18),
+              color: AppColors.indigo.withValues(alpha: 0.18),
               size: 300,
             ),
           ),
@@ -296,7 +291,7 @@ class _DecorBlobs extends StatelessWidget {
             bottom: -140,
             left: -60,
             child: _Blob(
-              color: AppColors.indigo.withValues(alpha: 0.18),
+              color: AppColors.teal.withValues(alpha: 0.18),
               size: 340,
             ),
           ),
@@ -325,28 +320,38 @@ class _Blob extends StatelessWidget {
   }
 }
 
-class _LoginCard extends StatelessWidget {
-  const _LoginCard({
+class _RegisterCard extends StatelessWidget {
+  const _RegisterCard({
     required this.formKey,
+    required this.nameCtrl,
+    required this.emailCtrl,
     required this.userCtrl,
     required this.passCtrl,
+    required this.confirmCtrl,
     required this.obscure,
+    required this.obscureConfirm,
     required this.toggleObscure,
+    required this.toggleObscureConfirm,
     required this.onSubmit,
     required this.onGoogle,
-    required this.onRegister,
     required this.submitting,
+    required this.password,
   });
 
   final GlobalKey<FormState> formKey;
+  final TextEditingController nameCtrl;
+  final TextEditingController emailCtrl;
   final TextEditingController userCtrl;
   final TextEditingController passCtrl;
+  final TextEditingController confirmCtrl;
   final bool obscure;
+  final bool obscureConfirm;
   final VoidCallback toggleObscure;
+  final VoidCallback toggleObscureConfirm;
   final VoidCallback onSubmit;
   final VoidCallback onGoogle;
-  final VoidCallback onRegister;
   final bool submitting;
+  final String password;
 
   @override
   Widget build(BuildContext context) {
@@ -379,7 +384,7 @@ class _LoginCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(AppTheme.radiusSm),
                   ),
                   child: const Icon(
-                    Icons.lock_open_rounded,
+                    Icons.person_add_alt_1_rounded,
                     color: Colors.white,
                   ),
                 ),
@@ -389,12 +394,9 @@ class _LoginCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: <Widget>[
+                      Text('Criar conta', style: theme.textTheme.headlineSmall),
                       Text(
-                        'Entrar',
-                        style: theme.textTheme.headlineSmall,
-                      ),
-                      Text(
-                        'Acesse o painel com suas credenciais.',
+                        'Preencha seus dados para começar.',
                         style: theme.textTheme.bodySmall,
                       ),
                     ],
@@ -404,18 +406,61 @@ class _LoginCard extends StatelessWidget {
             ),
             const SizedBox(height: 22),
             TextFormField(
+              controller: nameCtrl,
+              enabled: !submitting,
+              autofillHints: const <String>[AutofillHints.name],
+              textInputAction: TextInputAction.next,
+              textCapitalization: TextCapitalization.words,
+              decoration: const InputDecoration(
+                labelText: 'Nome completo',
+                hintText: 'Maria Silva',
+                prefixIcon: Icon(Icons.badge_outlined),
+              ),
+              validator: (String? v) {
+                if (v == null || v.trim().length < 2) {
+                  return 'Informe seu nome completo.';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: emailCtrl,
+              enabled: !submitting,
+              autofillHints: const <String>[AutofillHints.email],
+              keyboardType: TextInputType.emailAddress,
+              textInputAction: TextInputAction.next,
+              decoration: const InputDecoration(
+                labelText: 'E-mail',
+                hintText: 'voce@email.com',
+                prefixIcon: Icon(Icons.alternate_email_rounded),
+              ),
+              validator: (String? v) {
+                final String t = (v ?? '').trim();
+                if (t.isEmpty) return 'Informe seu e-mail.';
+                final RegExp re =
+                    RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+                if (!re.hasMatch(t)) return 'E-mail inválido.';
+                return null;
+              },
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
               controller: userCtrl,
               enabled: !submitting,
-              autofillHints: const <String>[AutofillHints.username],
+              autofillHints: const <String>[AutofillHints.newUsername],
               textInputAction: TextInputAction.next,
               decoration: const InputDecoration(
                 labelText: 'Usuário',
-                hintText: 'seu.usuario',
+                hintText: 'maria.silva',
+                helperText: 'Apenas minúsculas, números, "_" e "."',
                 prefixIcon: Icon(Icons.person_outline_rounded),
               ),
               validator: (String? v) {
-                if (v == null || v.trim().isEmpty) {
-                  return 'Informe o usuário.';
+                final String t = (v ?? '').trim();
+                if (t.isEmpty) return 'Informe um nome de usuário.';
+                if (!RegExp(r'^[a-z0-9_.-]{3,32}$').hasMatch(t)) {
+                  return 'Use 3–32 caracteres em minúsculas, números, "_" ou ".".';
                 }
                 return null;
               },
@@ -425,11 +470,11 @@ class _LoginCard extends StatelessWidget {
               controller: passCtrl,
               enabled: !submitting,
               obscureText: obscure,
-              autofillHints: const <String>[AutofillHints.password],
-              textInputAction: TextInputAction.done,
-              onFieldSubmitted: (_) => onSubmit(),
+              autofillHints: const <String>[AutofillHints.newPassword],
+              textInputAction: TextInputAction.next,
               decoration: InputDecoration(
                 labelText: 'Senha',
+                helperText: 'Mínimo 8 caracteres com letras e números.',
                 prefixIcon: const Icon(Icons.lock_outline_rounded),
                 suffixIcon: IconButton(
                   onPressed: toggleObscure,
@@ -440,7 +485,40 @@ class _LoginCard extends StatelessWidget {
                 ),
               ),
               validator: (String? v) {
-                if (v == null || v.isEmpty) return 'Informe a senha.';
+                final String t = v ?? '';
+                if (t.isEmpty) return 'Crie uma senha.';
+                if (t.length < 8) return 'Pelo menos 8 caracteres.';
+                if (CryptoService.passwordStrength(t) < 2) {
+                  return 'Combine letras, números e/ou símbolos.';
+                }
+                return null;
+              },
+            ),
+            if (password.isNotEmpty) ...<Widget>[
+              const SizedBox(height: 8),
+              _PasswordStrength(password: password),
+            ],
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: confirmCtrl,
+              enabled: !submitting,
+              obscureText: obscureConfirm,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => onSubmit(),
+              decoration: InputDecoration(
+                labelText: 'Confirmar senha',
+                prefixIcon: const Icon(Icons.lock_reset_rounded),
+                suffixIcon: IconButton(
+                  onPressed: toggleObscureConfirm,
+                  icon: Icon(obscureConfirm
+                      ? Icons.visibility_off_rounded
+                      : Icons.visibility_rounded),
+                  tooltip: obscureConfirm ? 'Mostrar senha' : 'Ocultar senha',
+                ),
+              ),
+              validator: (String? v) {
+                if (v == null || v.isEmpty) return 'Confirme sua senha.';
+                if (v != passCtrl.text) return 'As senhas não conferem.';
                 return null;
               },
             ),
@@ -454,8 +532,8 @@ class _LoginCard extends StatelessWidget {
               child: _GradientButton(
                 loading: submitting,
                 onPressed: submitting ? null : onSubmit,
-                label: submitting ? 'Entrando...' : 'Entrar no sistema',
-                icon: Icons.login_rounded,
+                label: submitting ? 'Criando conta...' : 'Criar conta',
+                icon: Icons.person_add_alt_1_rounded,
               ),
             ),
             const SizedBox(height: 18),
@@ -467,18 +545,63 @@ class _LoginCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
                 Text(
-                  'Ainda não tem conta?',
+                  'Já tem uma conta?',
                   style: theme.textTheme.bodySmall,
                 ),
                 TextButton(
-                  onPressed: submitting ? null : onRegister,
-                  child: const Text('Criar conta'),
+                  onPressed: submitting
+                      ? null
+                      : () => Navigator.of(context).pop(),
+                  child: const Text('Entrar'),
                 ),
               ],
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _PasswordStrength extends StatelessWidget {
+  const _PasswordStrength({required this.password});
+  final String password;
+
+  @override
+  Widget build(BuildContext context) {
+    final int score = CryptoService.passwordStrength(password);
+    final String label = CryptoService.passwordStrengthLabel(score);
+    final List<Color> colors = <Color>[
+      AppColors.danger,
+      AppColors.warning,
+      AppColors.amber,
+      AppColors.success,
+      AppColors.success,
+    ];
+    final Color color = colors[score.clamp(0, 4)];
+    return Row(
+      children: <Widget>[
+        Expanded(
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: ((score + 1) / 5).clamp(0.05, 1),
+              minHeight: 6,
+              backgroundColor:
+                  Theme.of(context).colorScheme.surfaceContainerHighest,
+              valueColor: AlwaysStoppedAnimation<Color>(color),
+            ),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+      ],
     );
   }
 }
@@ -565,7 +688,7 @@ class _GradientButton extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppTheme.radiusSm),
             boxShadow: <BoxShadow>[
               BoxShadow(
-                color: AppColors.indigo.withValues(alpha: 0.35),
+                color: AppColors.indigo.withValues(alpha: 0.32),
                 blurRadius: 22,
                 offset: const Offset(0, 10),
                 spreadRadius: -6,

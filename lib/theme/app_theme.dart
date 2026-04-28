@@ -56,19 +56,19 @@ class AppTheme {
     final ColorScheme scheme = ColorScheme.fromSeed(
       seedColor: AppColors.indigo,
       brightness: Brightness.dark,
-      primary: const Color(0xFF818CF8),
-      onPrimary: const Color(0xFF1E1B4B),
-      secondary: const Color(0xFFA78BFA),
-      onSecondary: const Color(0xFF2E1065),
-      tertiary: const Color(0xFFF472B6),
-      onTertiary: const Color(0xFF500724),
+      primary: const Color(0xFF6FA8D8),
+      onPrimary: const Color(0xFF0B1422),
+      secondary: const Color(0xFF45C2B5),
+      onSecondary: const Color(0xFF0B1422),
+      tertiary: const Color(0xFFE6A86E),
+      onTertiary: const Color(0xFF1B2735),
       surface: AppColors.darkSurface,
       onSurface: AppColors.darkText,
       surfaceContainerLowest: AppColors.darkBackground,
       surfaceContainerLow: AppColors.darkSurface,
       surfaceContainer: AppColors.darkSurfaceAlt,
       surfaceContainerHigh: AppColors.darkSurfaceMuted,
-      error: const Color(0xFFF87171),
+      error: const Color(0xFFE07575),
     );
 
     return _baseTheme(scheme).copyWith(

@@ -136,7 +136,9 @@ class AppLogoLockup extends StatelessWidget {
                   TextSpan(
                     text: 'PRO',
                     style: TextStyle(
-                      color: AppColors.pink,
+                      color: fg == Colors.white
+                          ? Colors.white
+                          : AppColors.teal,
                       fontWeight: FontWeight.w700,
                     ),
                   ),

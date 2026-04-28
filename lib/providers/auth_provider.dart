@@ -61,6 +61,38 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Auto-cadastro de usuário comum. Em sucesso, já cria sessão e
+  /// sinaliza [AuthStatus.signedIn] — não há necessidade de o usuário
+  /// fazer login manual logo após o registro.
+  Future<bool> register({
+    required String username,
+    required String displayName,
+    required String email,
+    required String password,
+  }) async {
+    _lastError = null;
+    try {
+      await _service.registerSelf(
+        username: username,
+        displayName: displayName,
+        email: email,
+        password: password,
+      );
+      final AuthResult result = await _service.login(
+        username: username,
+        password: password,
+      );
+      _user = result.user;
+      _status = AuthStatus.signedIn;
+      notifyListeners();
+      return true;
+    } on AuthException catch (e) {
+      _lastError = e.message;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<void> logout() async {
     final AppUser? u = _user;
     if (u != null) await _service.logout(u);

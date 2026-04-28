@@ -115,9 +115,9 @@ class _AdminUserDetailScreenState extends State<AdminUserDetailScreen> {
         .firstWhere((AppUser? u) => u?.id == widget.userId, orElse: () => null);
 
     if (user == null) {
-      return Scaffold(
-        appBar: const AppHeader(),
-        body: const Center(
+      return const Scaffold(
+        appBar: AppHeader(),
+        body: Center(
           child: Text('Usuário não encontrado.'),
         ),
       );
