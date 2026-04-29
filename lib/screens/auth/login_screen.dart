@@ -3,10 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
-import '../../services/auth_service.dart' show AuthException;
-import '../../services/google_auth_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/platform_check.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/google_sign_in_button.dart';
 import 'register_screen.dart';
@@ -52,31 +51,38 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleGoogle() async {
-    try {
-      await GoogleAuthService.instance.signIn();
-    } on AuthException catch (e) {
-      if (!mounted) return;
-      showDialog<void>(
-        context: context,
-        builder: (BuildContext ctx) => AlertDialog(
-          title: const Text('Login com Google'),
-          content: Text(
-            '${e.message}\n\n'
-            'Para habilitar é preciso configurar credenciais OAuth no '
-            'Google Cloud Console e plugar o fluxo no app. Lembre-se '
-            'que isso passa a depender de internet — a proposta '
-            '"100% offline" do EvoluaPRO precisa ser revista quando '
-            'ativar.',
-          ),
-          actions: <Widget>[
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Entendi'),
-            ),
-          ],
-        ),
-      );
+    if (_submitting) return;
+    if (!PlatformCheck.supportsGoogleSignIn) {
+      _showGoogleUnsupported();
+      return;
     }
+    setState(() => _submitting = true);
+    final AuthProvider auth = context.read<AuthProvider>();
+    final bool ok = await auth.loginWithGoogle();
+    if (!mounted) return;
+    setState(() => _submitting = false);
+    if (!ok) {
+      HapticFeedback.mediumImpact();
+    }
+  }
+
+  void _showGoogleUnsupported() {
+    showDialog<void>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('Login com Google'),
+        content: const Text(
+          'Login com Google não está disponível nesta plataforma. '
+          'Use seu usuário e senha ou crie uma conta para continuar.',
+        ),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Entendi'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _openRegister() {

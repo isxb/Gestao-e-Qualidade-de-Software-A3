@@ -2,6 +2,24 @@
 /// `standard` usa o fluxo clínico.
 enum UserRole { admin, standard }
 
+/// Como a conta foi autenticada. `local` = usuário/senha tradicional;
+/// `google` = federada via Google Sign-In (sem senha local).
+enum AuthProviderKind { local, google }
+
+extension AuthProviderKindX on AuthProviderKind {
+  String get asString => name;
+
+  static AuthProviderKind fromString(String? raw) {
+    switch (raw) {
+      case 'google':
+        return AuthProviderKind.google;
+      case 'local':
+      default:
+        return AuthProviderKind.local;
+    }
+  }
+}
+
 extension UserRoleX on UserRole {
   String get label {
     switch (this) {
@@ -54,6 +72,10 @@ class AppUser {
     this.mustChangePassword = false,
     this.corenUF,
     this.corenNumero,
+    this.authProvider = AuthProviderKind.local,
+    this.googleId,
+    this.photoUrl,
+    this.asaasCustomerId,
   });
 
   final String id;
@@ -73,10 +95,26 @@ class AppUser {
   final String? corenUF;
   final String? corenNumero;
 
+  /// Origem da autenticação. Define se há senha local válida.
+  final AuthProviderKind authProvider;
+
+  /// `sub` (subject) retornado pelo Google. Pode ser usado como chave
+  /// idempotente para vincular contas locais ao login federado.
+  final String? googleId;
+
+  /// URL do avatar retornado pelo Google (opcional).
+  final String? photoUrl;
+
+  /// ID do cliente correspondente no Asaas, criado no primeiro checkout.
+  /// Persiste mesmo entre cancelamentos/reativações de assinatura.
+  final String? asaasCustomerId;
+
   bool get isLocked =>
       lockedUntil != null && lockedUntil!.isAfter(DateTime.now());
 
   bool get isAdmin => role == UserRole.admin;
+
+  bool get isGoogleAccount => authProvider == AuthProviderKind.google;
 
   AppUser copyWith({
     String? id,
@@ -97,6 +135,10 @@ class AppUser {
     bool? mustChangePassword,
     String? corenUF,
     String? corenNumero,
+    AuthProviderKind? authProvider,
+    String? googleId,
+    String? photoUrl,
+    String? asaasCustomerId,
   }) {
     return AppUser(
       id: id ?? this.id,
@@ -116,6 +158,10 @@ class AppUser {
       mustChangePassword: mustChangePassword ?? this.mustChangePassword,
       corenUF: corenUF ?? this.corenUF,
       corenNumero: corenNumero ?? this.corenNumero,
+      authProvider: authProvider ?? this.authProvider,
+      googleId: googleId ?? this.googleId,
+      photoUrl: photoUrl ?? this.photoUrl,
+      asaasCustomerId: asaasCustomerId ?? this.asaasCustomerId,
     );
   }
 
@@ -136,6 +182,10 @@ class AppUser {
         'mustChangePassword': mustChangePassword,
         'corenUF': corenUF,
         'corenNumero': corenNumero,
+        'authProvider': authProvider.asString,
+        'googleId': googleId,
+        'photoUrl': photoUrl,
+        'asaasCustomerId': asaasCustomerId,
       };
 
   static AppUser fromJson(Map<String, dynamic> j) {
@@ -160,6 +210,10 @@ class AppUser {
       mustChangePassword: (j['mustChangePassword'] as bool?) ?? false,
       corenUF: j['corenUF'] as String?,
       corenNumero: j['corenNumero'] as String?,
+      authProvider: AuthProviderKindX.fromString(j['authProvider'] as String?),
+      googleId: j['googleId'] as String?,
+      photoUrl: j['photoUrl'] as String?,
+      asaasCustomerId: j['asaasCustomerId'] as String?,
     );
   }
 }

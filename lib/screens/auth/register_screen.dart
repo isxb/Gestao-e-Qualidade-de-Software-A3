@@ -4,10 +4,9 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../services/crypto_service.dart';
-import '../../services/google_auth_service.dart';
-import '../../services/auth_service.dart' show AuthException;
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
+import '../../utils/platform_check.dart';
 import '../../widgets/app_logo.dart';
 import '../../widgets/google_sign_in_button.dart';
 
@@ -75,25 +74,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _handleGoogle() async {
-    try {
-      await GoogleAuthService.instance.signIn();
-    } on AuthException catch (e) {
-      if (!mounted) return;
-      _showGoogleNotConfigured(e.message);
+    if (_submitting) return;
+    if (!PlatformCheck.supportsGoogleSignIn) {
+      _showGoogleUnsupported();
+      return;
+    }
+    setState(() => _submitting = true);
+    final AuthProvider auth = context.read<AuthProvider>();
+    final bool ok = await auth.loginWithGoogle();
+    if (!mounted) return;
+    setState(() => _submitting = false);
+    // Em sucesso, o AuthGate redireciona automaticamente para a Home.
+    if (!ok && auth.lastError != null) {
+      HapticFeedback.mediumImpact();
     }
   }
 
-  void _showGoogleNotConfigured(String message) {
+  void _showGoogleUnsupported() {
     showDialog<void>(
       context: context,
       builder: (BuildContext ctx) => AlertDialog(
         title: const Text('Login com Google'),
-        content: Text(
-          '$message\n\n'
-          'Para habilitar é preciso configurar credenciais OAuth no Google '
-          'Cloud Console e plugar o fluxo no app. Lembre-se que isso passa '
-          'a depender de internet — a proposta "100% offline" do EvoluaPRO '
-          'precisa ser revista quando ativar.',
+        content: const Text(
+          'Login com Google não está disponível nesta plataforma. '
+          'Crie sua conta com e-mail e senha para continuar.',
         ),
         actions: <Widget>[
           TextButton(

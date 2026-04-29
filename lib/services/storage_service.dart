@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/activity_log.dart';
 import '../models/saved_evolution.dart';
+import '../models/subscription.dart';
 import '../models/user.dart';
 
 class StorageService {
@@ -19,6 +20,7 @@ class StorageService {
   static const String _kBootstrappedKey = 'evoluaPro_bootstrapped';
   static const String _kSessionKey = 'evoluaPro_session_v1';
   static const String _kThemeKey = 'evoluaPro_theme';
+  static const String _kSubscriptionsKey = 'evoluaPro_subscriptions';
 
   static const int _maxLogs = 5000;
 
@@ -166,5 +168,37 @@ class StorageService {
       await _secure.delete(key: _kSessionKey);
     } catch (_) {
     }
+  }
+
+  // ============================================================
+  // Assinaturas (cache local de UserSubscription por userId)
+  // ============================================================
+  Map<String, UserSubscription> loadSubscriptions() {
+    final String? raw = _store.getString(_kSubscriptionsKey);
+    if (raw == null || raw.isEmpty) return <String, UserSubscription>{};
+    try {
+      final dynamic decoded = jsonDecode(raw);
+      if (decoded is! List) return <String, UserSubscription>{};
+      final Map<String, UserSubscription> map = <String, UserSubscription>{};
+      for (final dynamic item in decoded) {
+        if (item is Map<dynamic, dynamic>) {
+          final UserSubscription s =
+              UserSubscription.fromJson(item.cast<String, dynamic>());
+          map[s.userId] = s;
+        }
+      }
+      return map;
+    } catch (_) {
+      return <String, UserSubscription>{};
+    }
+  }
+
+  Future<void> saveSubscriptions(
+    Map<String, UserSubscription> subscriptions,
+  ) async {
+    final String raw = jsonEncode(
+      subscriptions.values.map((UserSubscription s) => s.toJson()).toList(),
+    );
+    await _store.setString(_kSubscriptionsKey, raw);
   }
 }

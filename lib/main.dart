@@ -9,6 +9,8 @@ import 'models/user.dart';
 import 'providers/admin_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/evolution_provider.dart';
+import 'providers/subscription_provider.dart';
+import 'services/ad_service.dart';
 import 'services/auth_service.dart';
 import 'services/log_service.dart';
 import 'services/storage_service.dart';
@@ -25,6 +27,11 @@ Future<void> main() async {
   await StorageService.instance.init();
   LogService.instance.hydrate();
   await AuthService.instance.ensureBootstrap();
+
+  // AdMob — no-op em desktop/web. Em mobile, inicializa o SDK em paralelo
+  // com o resto do bootstrap pra não atrasar o `runApp`.
+  // ignore: unawaited_futures
+  AdService.instance.initialize();
 
   await SystemChrome.setPreferredOrientations(<DeviceOrientation>[
     DeviceOrientation.portraitUp,
@@ -48,6 +55,16 @@ Future<void> main() async {
             final EvolutionProvider p = previous ?? (EvolutionProvider()..hydrate());
             final AppUser? u = auth.currentUser;
             p.bindCurrentUser(u);
+            return p;
+          },
+        ),
+        // Assinatura espelha o usuário ativo: ao logar, carrega o snapshot
+        // local; ao deslogar, limpa.
+        ChangeNotifierProxyProvider<AuthProvider, SubscriptionProvider>(
+          create: (_) => SubscriptionProvider(),
+          update: (_, AuthProvider auth, SubscriptionProvider? previous) {
+            final SubscriptionProvider p = previous ?? SubscriptionProvider();
+            p.bindUser(auth.currentUser);
             return p;
           },
         ),

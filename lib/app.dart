@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/auth_provider.dart';
+import 'providers/subscription_provider.dart';
 import 'screens/auth/change_password_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/subscription/paywall_screen.dart';
 import 'theme/app_colors.dart';
 import 'theme/app_theme.dart';
+import 'utils/platform_check.dart';
 
 class EvoluaProApp extends StatelessWidget {
   const EvoluaProApp({super.key});
@@ -32,10 +35,13 @@ class EvoluaProApp extends StatelessWidget {
   }
 }
 
-/// Portão que decide qual tela exibir com base no estado de autenticação.
+/// Portão que decide qual tela exibir com base no estado de autenticação
+/// e — em desktop — no estado da assinatura.
+///
 /// - [AuthStatus.initializing] → splash com logo
 /// - [AuthStatus.signedOut]    → tela de login
 /// - [AuthStatus.signedIn] + mustChangePassword → troca obrigatória
+/// - [AuthStatus.signedIn] + Windows sem premium → paywall obrigatório
 /// - [AuthStatus.signedIn]     → home
 class _AuthGate extends StatelessWidget {
   const _AuthGate();
@@ -43,6 +49,7 @@ class _AuthGate extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final AuthProvider auth = context.watch<AuthProvider>();
+    final SubscriptionProvider sub = context.watch<SubscriptionProvider>();
     switch (auth.status) {
       case AuthStatus.initializing:
         return const _SplashView();
@@ -51,6 +58,9 @@ class _AuthGate extends StatelessWidget {
       case AuthStatus.signedIn:
         if (auth.mustChangePassword) {
           return const ChangePasswordScreen(forced: true);
+        }
+        if (PlatformCheck.requiresPremium && !sub.isPremium) {
+          return const PaywallScreen();
         }
         return const HomeScreen();
     }

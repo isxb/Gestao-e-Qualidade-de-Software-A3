@@ -6,13 +6,17 @@ import '../models/saved_evolution.dart';
 import '../providers/admin_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/evolution_provider.dart';
+import '../providers/subscription_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../widgets/ad_banner.dart';
 import '../widgets/app_header.dart';
 import 'admin/admin_home_screen.dart';
 import 'database_screen.dart';
 import 'generator_screen.dart';
 import 'settings_screen.dart';
+import 'subscription/manage_subscription_screen.dart';
+import 'subscription/plans_screen.dart';
 import 'view_saved_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -39,6 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final ThemeData theme = Theme.of(context);
     final AuthProvider auth = context.watch<AuthProvider>();
     final EvolutionProvider evo = context.watch<EvolutionProvider>();
+    final SubscriptionProvider sub = context.watch<SubscriptionProvider>();
     final List<SavedEvolution> all = evo.savedEvolutions;
     final List<SavedEvolution> recent = all.take(5).toList();
 
@@ -74,7 +79,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 18),
                 _AdminShortcut(),
               ],
-              const SizedBox(height: 22),
+              const SizedBox(height: 18),
+              _SubscriptionBadge(),
+              const SizedBox(height: 18),
               _PrimaryCTA(),
               const SizedBox(height: 14),
               _SecondaryActions(),
@@ -100,9 +107,74 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               const SizedBox(height: 10),
               _RecentList(items: recent),
-              const SizedBox(height: 22),
-              const _PrivacyNote(),
+              if (sub.shouldShowAds) ...<Widget>[
+                const SizedBox(height: 18),
+                const AdBanner(),
+              ],
               const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Faixa enxuta indicando o plano atual e — se gratuito — convidando o
+/// usuário a fazer upgrade. Em premium vira link para "Minha assinatura".
+class _SubscriptionBadge extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final SubscriptionProvider sub = context.watch<SubscriptionProvider>();
+    final bool premium = sub.isPremium;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => premium
+                ? const ManageSubscriptionScreen()
+                : const PlansScreen(),
+          ),
+        ),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: premium
+                ? AppColors.tealLight.withValues(alpha: 0.55)
+                : AppColors.amberLight.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+            border: Border.all(
+              color: (premium ? AppColors.teal : AppColors.amber)
+                  .withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            children: <Widget>[
+              Icon(
+                premium
+                    ? Icons.workspace_premium_rounded
+                    : Icons.local_offer_rounded,
+                size: 20,
+                color: premium ? AppColors.teal : AppColors.warningDark,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  premium
+                      ? 'Premium ativo — gerencie sua assinatura.'
+                      : 'Você está no plano gratuito. Conheça o Premium e remova anúncios.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
             ],
           ),
         ),

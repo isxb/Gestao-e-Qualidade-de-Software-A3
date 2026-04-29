@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 
 import '../models/user.dart';
 import '../services/auth_service.dart';
+import '../services/google_auth_service.dart';
+import '../utils/platform_check.dart';
 
 enum AuthStatus {
   /// Ainda verificando sessão ao abrir o app.
@@ -96,9 +98,37 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     final AppUser? u = _user;
     if (u != null) await _service.logout(u);
+    if (PlatformCheck.supportsGoogleSignIn) {
+      // Não bloqueia o fluxo se falhar — só limpa o cache do plugin.
+      await GoogleAuthService.instance.signOut();
+    }
     _user = null;
     _status = AuthStatus.signedOut;
     notifyListeners();
+  }
+
+  /// Login federado via Google. Em plataformas sem suporte (Windows
+  /// desktop hoje), devolve `false` e popula `lastError` com instruções.
+  Future<bool> loginWithGoogle() async {
+    _lastError = null;
+    if (!PlatformCheck.supportsGoogleSignIn) {
+      _lastError =
+          'Login com Google indisponível nesta plataforma. Use seu usuário e senha.';
+      notifyListeners();
+      return false;
+    }
+    try {
+      final GoogleAuthResult result =
+          await GoogleAuthService.instance.signIn();
+      _user = result.user;
+      _status = AuthStatus.signedIn;
+      notifyListeners();
+      return true;
+    } on AuthException catch (e) {
+      _lastError = e.message;
+      notifyListeners();
+      return false;
+    }
   }
 
   Future<bool> changeOwnPassword({
