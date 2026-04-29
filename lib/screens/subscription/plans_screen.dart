@@ -5,65 +5,160 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/subscription.dart';
 import '../../models/subscription_plan.dart';
+import '../../providers/auth_provider.dart';
 import '../../providers/subscription_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/app_header.dart';
+import '../../widgets/app_logo.dart';
 
 /// Galeria de planos pagos. Selecionar um plano abre um modal pedindo
 /// CPF/CNPJ (exigência do Asaas) e dispara o checkout.
+///
+/// Quando [requireSubscription] é true, a tela atua como gate obrigatório
+/// (Windows sem premium): exibe o próprio cabeçalho com logo + Sair, sem
+/// AppHeader, sem botão de voltar. Esse modo é a tela inteira do
+/// PaywallScreen — não a aninhe dentro de outro Scaffold ou scroll.
 class PlansScreen extends StatelessWidget {
   const PlansScreen({super.key, this.requireSubscription = false});
 
-  /// Quando `true`, a tela é apresentada como gate obrigatório (sem
-  /// botão de voltar). Usado em [PaywallScreen] para o Windows.
   final bool requireSubscription;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final SubscriptionProvider sub = context.watch<SubscriptionProvider>();
+
     return Scaffold(
       appBar: requireSubscription ? null : const AppHeader(showHomeButton: true),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: AppTheme.contentMaxWidth(context),
-          ),
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: AppTheme.horizontalPadding(context),
-              vertical: 32,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
-                if (!requireSubscription)
-                  Row(
-                    children: <Widget>[
-                      IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        icon: const Icon(Icons.arrow_back_rounded),
-                      ),
-                      const SizedBox(width: 8),
-                      Text('Escolher plano',
-                          style: theme.textTheme.displayMedium),
-                    ],
+      body: SafeArea(
+        top: requireSubscription,
+        child: Column(
+          children: <Widget>[
+            if (requireSubscription) const _PaywallTopBar(),
+            Expanded(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth: AppTheme.contentMaxWidth(context),
                   ),
-                if (!requireSubscription) const SizedBox(height: 16),
-                _Header(requireSubscription: requireSubscription),
-                const SizedBox(height: 24),
-                _PlansGrid(),
-                const SizedBox(height: 24),
-                Text(
-                  'Os pagamentos são processados com segurança pela Asaas. '
-                  'Você pode cancelar a qualquer momento — em "Minha assinatura".',
-                  style: theme.textTheme.bodySmall,
-                  textAlign: TextAlign.center,
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: AppTheme.horizontalPadding(context),
+                      vertical: requireSubscription ? 24 : 32,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: <Widget>[
+                        if (!requireSubscription)
+                          Row(
+                            children: <Widget>[
+                              IconButton(
+                                onPressed: () =>
+                                    Navigator.of(context).pop(),
+                                icon: const Icon(Icons.arrow_back_rounded),
+                              ),
+                              const SizedBox(width: 8),
+                              Text('Escolher plano',
+                                  style: theme.textTheme.displayMedium),
+                            ],
+                          ),
+                        if (!requireSubscription) const SizedBox(height: 16),
+                        _Header(requireSubscription: requireSubscription),
+                        const SizedBox(height: 24),
+                        _PlansGrid(),
+                        const SizedBox(height: 24),
+                        Text(
+                          'Os pagamentos são processados com segurança pela Asaas. '
+                          'Você pode cancelar a qualquer momento — em "Minha assinatura".',
+                          style: theme.textTheme.bodySmall,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 30),
+                      ],
+                    ),
+                  ),
                 ),
-                const SizedBox(height: 30),
-              ],
+              ),
             ),
+            if (requireSubscription &&
+                sub.subscription?.checkoutUrl != null &&
+                !sub.isPremium)
+              const _PendingPaymentBar(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Cabeçalho do modo paywall: logo à esquerda, botão "Sair" à direita.
+/// Usado apenas quando [PlansScreen.requireSubscription] é true — nessa
+/// situação não há AppBar nem botão de voltar.
+class _PaywallTopBar extends StatelessWidget {
+  const _PaywallTopBar();
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+      child: Row(
+        children: <Widget>[
+          AppLogoLockup(
+            logoSize: 36,
+            compact: true,
+            color: theme.colorScheme.onSurface,
           ),
+          const Spacer(),
+          TextButton.icon(
+            onPressed: () => context.read<AuthProvider>().logout(),
+            icon: const Icon(Icons.logout_rounded, size: 18),
+            label: const Text('Sair'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Faixa que aparece no rodapé do paywall quando o usuário criou uma
+/// assinatura mas o pagamento ainda não foi confirmado pelo Asaas.
+class _PendingPaymentBar extends StatelessWidget {
+  const _PendingPaymentBar();
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final SubscriptionProvider sub = context.watch<SubscriptionProvider>();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: AppColors.amberLight,
+          borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+          border: Border.all(
+            color: AppColors.amber.withValues(alpha: 0.4),
+          ),
+        ),
+        child: Row(
+          children: <Widget>[
+            const Icon(Icons.hourglass_top_rounded,
+                color: AppColors.warningDark),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Sua assinatura está aguardando confirmação do primeiro '
+                'pagamento. Após confirmar, atualize para liberar o acesso.',
+                style: theme.textTheme.bodySmall,
+              ),
+            ),
+            TextButton(
+              onPressed: sub.isBusy ? null : sub.sync,
+              child: const Text('Atualizar status'),
+            ),
+          ],
         ),
       ),
     );

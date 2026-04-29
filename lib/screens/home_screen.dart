@@ -656,37 +656,3 @@ class _RecentRow extends StatelessWidget {
   }
 }
 
-/// Aviso discreto sobre privacidade — útil de fato para a enfermagem,
-/// que costuma trabalhar com dados sensíveis de pacientes.
-class _PrivacyNote extends StatelessWidget {
-  const _PrivacyNote();
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.tealLight.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-        border: Border.all(color: AppColors.teal.withValues(alpha: 0.25)),
-      ),
-      child: Row(
-        children: <Widget>[
-          const Icon(Icons.lock_outline_rounded,
-              size: 20, color: AppColors.teal),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Dados armazenados apenas neste dispositivo. Nada é enviado para servidores externos.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.78),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
