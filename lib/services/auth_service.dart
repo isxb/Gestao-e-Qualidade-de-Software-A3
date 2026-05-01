@@ -147,7 +147,7 @@ class AuthService {
       );
     }
 
-    final bool ok = CryptoService.verifyPassword(
+    final bool ok = await CryptoService.verifyPasswordAsync(
       password: password,
       expectedHashBase64: user.passwordHash,
       saltBase64: user.salt,
@@ -371,7 +371,7 @@ class AuthService {
   }) async {
     _validatePasswordPolicy(newPassword);
 
-    final bool ok = CryptoService.verifyPassword(
+    final bool ok = await CryptoService.verifyPasswordAsync(
       password: oldPassword,
       expectedHashBase64: currentUser.passwordHash,
       saltBase64: currentUser.salt,

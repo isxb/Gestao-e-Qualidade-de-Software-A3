@@ -296,18 +296,34 @@ class _SuccessStateState extends State<_SuccessState> {
                   leading: const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 32),
                   title: const Text('Salvar como PDF'),
                   subtitle: const Text('Gera um documento pronto para impressão.'),
-                  onTap: () {
+                  onTap: () async {
                     Navigator.pop(ctx);
-                    ExportService.exportToPdf(widget.text, widget.patientName);
+                    try {
+                      await ExportService.exportToPdf(widget.text, widget.patientName);
+                    } catch (e) {
+                      if (ctx.mounted) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          SnackBar(content: Text('Erro ao exportar PDF: $e')),
+                        );
+                      }
+                    }
                   },
                 ),
                 ListTile(
                   leading: const Icon(Icons.text_snippet_rounded, color: Colors.blue, size: 32),
                   title: const Text('Compartilhar Texto'),
                   subtitle: const Text('Envia para outros apps (WhatsApp, Word, Email).'),
-                  onTap: () {
+                  onTap: () async {
                     Navigator.pop(ctx);
-                    ExportService.exportToText(widget.text, widget.patientName);
+                    try {
+                      await ExportService.exportToText(widget.text, widget.patientName);
+                    } catch (e) {
+                      if (ctx.mounted) {
+                        ScaffoldMessenger.of(ctx).showSnackBar(
+                          SnackBar(content: Text('Erro ao compartilhar texto: $e')),
+                        );
+                      }
+                    }
                   },
                 ),
               ],

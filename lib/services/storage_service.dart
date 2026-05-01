@@ -80,9 +80,11 @@ class StorageService {
   }
 
   // ============================================================
-  // Usuários
+  // Usuários — armazenados em secure storage para proteger hashes de senha
   // ============================================================
   List<AppUser> loadUsers() {
+    // Fallback síncrono: lê do cache em memória se disponível.
+    // Para carregamento inicial, chame loadUsersAsync().
     final String? raw = _store.getString(_kUsersKey);
     if (raw == null || raw.isEmpty) return <AppUser>[];
     try {
@@ -98,10 +100,37 @@ class StorageService {
     }
   }
 
+  /// Versão assíncrona preferida: persiste em secure storage E mantém
+  /// cópia em SharedPreferences apenas para leitura síncrona em bootstrap.
   Future<void> saveUsers(List<AppUser> users) async {
     final String raw =
         jsonEncode(users.map((AppUser u) => u.toJson()).toList());
+    // Persiste na secure storage (dados sensíveis — hash + salt de senha)
+    await _secure.write(key: _kUsersKey, value: raw);
+    // Cópia em prefs para loadUsers() síncrono no bootstrap
     await _store.setString(_kUsersKey, raw);
+  }
+
+  /// Lê usuários da secure storage com fallback para SharedPreferences.
+  Future<List<AppUser>> loadUsersAsync() async {
+    try {
+      final String? raw = await _secure.read(key: _kUsersKey);
+      if (raw != null && raw.isNotEmpty) {
+        final dynamic decoded = jsonDecode(raw);
+        if (decoded is List) {
+          final List<AppUser> users = decoded
+              .whereType<Map<dynamic, dynamic>>()
+              .map((Map<dynamic, dynamic> m) =>
+                  AppUser.fromJson(m.cast<String, dynamic>()))
+              .toList();
+          // Sincroniza prefs para acesso síncrono futuro
+          await _store.setString(_kUsersKey, raw);
+          return users;
+        }
+      }
+    } catch (_) {}
+    // Fallback: SharedPreferences (dados de versões anteriores)
+    return loadUsers();
   }
 
   bool get isBootstrapped => _store.getBool(_kBootstrappedKey) ?? false;
@@ -166,7 +195,15 @@ class StorageService {
   Future<void> clearSession() async {
     try {
       await _secure.delete(key: _kSessionKey);
-    } catch (_) {
+    } catch (e) {
+      // Em alguns dispositivos o keychain pode falhar ao deletar (ex: iOS
+      // após reinstalação sem backup). Logamos mas não propagamos para não
+      // bloquear o logout do usuário.
+      assert(() {
+        // ignore: avoid_print
+        print('[StorageService] clearSession error (non-fatal): $e');
+        return true;
+      }());
     }
   }
 

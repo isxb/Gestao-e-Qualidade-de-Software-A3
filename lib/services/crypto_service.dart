@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 
 /// Implementação de PBKDF2-HMAC-SHA256 para hashing de senhas.
 /// Mantém o fluxo de autenticação totalmente local, sem dependência
@@ -135,6 +136,45 @@ class CryptoService {
     return score.clamp(0, 4);
   }
 
+  // ============================================================
+  // Versões assíncronas — rodam o PBKDF2 num Isolate via compute()
+  // para não travar a UI thread (150k iterações ≈ 200–400ms no mobile).
+  // ============================================================
+
+  /// Versão async de [hashPassword]. Prefira este método em código de UI.
+  static Future<String> hashPasswordAsync({
+    required String password,
+    required String saltBase64,
+    int iterations = defaultIterations,
+  }) {
+    return compute(
+      (List<String> args) => hashPassword(
+        password: args[0],
+        saltBase64: args[1],
+        iterations: int.parse(args[2]),
+      ),
+      <String>[password, saltBase64, iterations.toString()],
+    );
+  }
+
+  /// Versão async de [verifyPassword]. Prefira este método em código de UI.
+  static Future<bool> verifyPasswordAsync({
+    required String password,
+    required String expectedHashBase64,
+    required String saltBase64,
+    required int iterations,
+  }) {
+    return compute(
+      (List<String> args) => verifyPassword(
+        password: args[0],
+        expectedHashBase64: args[1],
+        saltBase64: args[2],
+        iterations: int.parse(args[3]),
+      ),
+      <String>[password, expectedHashBase64, saltBase64, iterations.toString()],
+    );
+  }
+
   static String passwordStrengthLabel(int score) {
     switch (score) {
       case 0:
@@ -150,3 +190,5 @@ class CryptoService {
     }
   }
 }
+
+

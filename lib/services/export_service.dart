@@ -2,7 +2,6 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
-
 class ExportService {
   const ExportService._();
 
@@ -171,12 +170,11 @@ class ExportService {
   static Future<void> exportToText(String text, String patientName) async {
     final String cleanText = text.replaceAll('**', '');
     
-    // Ignorando o warning do share_plus, pois este método é universal
-    // e funciona em 100% das versões do pacote instaladas no Flutter.
-    // ignore: deprecated_member_use
-    await Share.share(
-      cleanText,
-      subject: 'Evolução de Enfermagem - $patientName',
+    await SharePlus.instance.share(
+      ShareParams(
+        text: cleanText,
+        subject: 'Evolução de Enfermagem - $patientName',
+      ),
     );
   }
 }

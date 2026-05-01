@@ -136,7 +136,8 @@ class _NavButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final EvolutionProvider p = context.read<EvolutionProvider>();
+    // context.read é seguro aqui pois só é chamado dentro de callbacks (onPressed),
+    // nunca durante o build tree. Garantido pelos closures abaixo.
     if (step == 8) return const SizedBox.shrink();
 
     final bool isLast = step == 7;
@@ -148,7 +149,7 @@ class _NavButtons extends StatelessWidget {
             label: 'Anterior',
             kind: ActionButtonKind.secondary,
             icon: Icons.arrow_back_rounded,
-            onPressed: p.previous,
+            onPressed: () => context.read<EvolutionProvider>().previous(),
           ),
         const Spacer(),
         Text(
@@ -161,14 +162,14 @@ class _NavButtons extends StatelessWidget {
             label: 'Próximo',
             kind: ActionButtonKind.primary,
             icon: Icons.arrow_forward_rounded,
-            onPressed: p.next,
+            onPressed: () => context.read<EvolutionProvider>().next(),
           )
         else
           ActionButton(
             label: 'Gerar Evolução',
             kind: ActionButtonKind.success,
             icon: Icons.auto_awesome_rounded,
-            onPressed: () => p.gerarEvolucao(),
+            onPressed: () => context.read<EvolutionProvider>().gerarEvolucao(),
           ),
       ],
     );

@@ -111,26 +111,32 @@ class AsaasService {
     return Uri.parse('$cleanBase$cleanPath');
   }
 
+  static const Duration _httpTimeout = Duration(seconds: 20);
+
   Future<dynamic> _post(String path, Map<String, dynamic> body) async {
     _ensureConfigured();
-    final http.Response res = await http.post(
-      _uri(path),
-      headers: _headers,
-      body: jsonEncode(body),
-    );
+    final http.Response res = await http
+        .post(
+          _uri(path),
+          headers: _headers,
+          body: jsonEncode(body),
+        )
+        .timeout(_httpTimeout);
     return _decode(res);
   }
 
   Future<dynamic> _get(String path) async {
     _ensureConfigured();
-    final http.Response res = await http.get(_uri(path), headers: _headers);
+    final http.Response res =
+        await http.get(_uri(path), headers: _headers).timeout(_httpTimeout);
     return _decode(res);
   }
 
   Future<dynamic> _delete(String path) async {
     _ensureConfigured();
-    final http.Response res =
-        await http.delete(_uri(path), headers: _headers);
+    final http.Response res = await http
+        .delete(_uri(path), headers: _headers)
+        .timeout(_httpTimeout);
     return _decode(res);
   }
 

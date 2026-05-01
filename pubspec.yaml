@@ -18,9 +18,6 @@ dependencies:
   # Persistence (cross-platform: Android, iOS, Windows, macOS, Linux, Web)
   shared_preferences: ^2.2.3
 
-  # AI / LLM
-  google_generative_ai: ^0.4.6
-
   # Env variables
   flutter_dotenv: ^5.1.0
 
