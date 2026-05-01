@@ -5,10 +5,7 @@ import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
-import '../../utils/platform_check.dart';
 import '../../widgets/app_logo.dart';
-import '../../widgets/google_sign_in_button.dart';
-import 'register_screen.dart';
 
 /// Tela de entrada do sistema. Design moderno com gradiente suave,
 /// cartão elevado centralizado no desktop e hero full-screen no mobile.
@@ -50,48 +47,6 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _handleGoogle() async {
-    if (_submitting) return;
-    if (!PlatformCheck.supportsGoogleSignIn) {
-      _showGoogleUnsupported();
-      return;
-    }
-    setState(() => _submitting = true);
-    final AuthProvider auth = context.read<AuthProvider>();
-    final bool ok = await auth.loginWithGoogle();
-    if (!mounted) return;
-    setState(() => _submitting = false);
-    if (!ok) {
-      HapticFeedback.mediumImpact();
-    }
-  }
-
-  void _showGoogleUnsupported() {
-    showDialog<void>(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        title: const Text('Login com Google'),
-        content: const Text(
-          'Login com Google não está disponível nesta plataforma. '
-          'Use seu usuário e senha ou crie uma conta para continuar.',
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Entendi'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _openRegister() {
-    context.read<AuthProvider>().clearError();
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const RegisterScreen()),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -107,8 +62,6 @@ class _LoginScreenState extends State<LoginScreen> {
       obscure: _obscure,
       toggleObscure: () => setState(() => _obscure = !_obscure),
       onSubmit: _submit,
-      onGoogle: _handleGoogle,
-      onRegister: _openRegister,
       submitting: _submitting,
     );
 
@@ -120,18 +73,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: <Color>[
-                    Color(0xFF0E1622),
-                    Color(0xFF17202F),
-                    Color(0xFF1F2A3D),
+                    Color(0xFF0B0F1A),
+                    Color(0xFF1C2338),
+                    Color(0xFF241A3D),
                   ],
                 )
               : const LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: <Color>[
-                    Color(0xFFF6F8FB),
-                    Color(0xFFEEF2F7),
-                    Color(0xFFE6EEEA),
+                    Color(0xFFEEF2FF),
+                    Color(0xFFF5F3FF),
+                    Color(0xFFFDF2F8),
                   ],
                 ),
         ),
@@ -182,7 +135,7 @@ class _LoginHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color onDark = Colors.white;
+    const Color onDark = Colors.white;
     final Color fg = isDark ? onDark : AppColors.lightText;
     if (compact) {
       return Column(
@@ -294,7 +247,7 @@ class _DecorBlobs extends StatelessWidget {
             top: -120,
             right: -80,
             child: _Blob(
-              color: AppColors.teal.withValues(alpha: 0.18),
+              color: AppColors.pink.withValues(alpha: 0.25),
               size: 300,
             ),
           ),
@@ -302,7 +255,7 @@ class _DecorBlobs extends StatelessWidget {
             bottom: -140,
             left: -60,
             child: _Blob(
-              color: AppColors.indigo.withValues(alpha: 0.18),
+              color: AppColors.indigo.withValues(alpha: 0.25),
               size: 340,
             ),
           ),
@@ -339,8 +292,6 @@ class _LoginCard extends StatelessWidget {
     required this.obscure,
     required this.toggleObscure,
     required this.onSubmit,
-    required this.onGoogle,
-    required this.onRegister,
     required this.submitting,
   });
 
@@ -350,8 +301,6 @@ class _LoginCard extends StatelessWidget {
   final bool obscure;
   final VoidCallback toggleObscure;
   final VoidCallback onSubmit;
-  final VoidCallback onGoogle;
-  final VoidCallback onRegister;
   final bool submitting;
 
   @override
@@ -464,52 +413,11 @@ class _LoginCard extends StatelessWidget {
                 icon: Icons.login_rounded,
               ),
             ),
-            const SizedBox(height: 18),
-            const _OrDivider(),
-            const SizedBox(height: 18),
-            GoogleSignInButton(onPressed: submitting ? null : onGoogle),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                Text(
-                  'Ainda não tem conta?',
-                  style: theme.textTheme.bodySmall,
-                ),
-                TextButton(
-                  onPressed: submitting ? null : onRegister,
-                  child: const Text('Criar conta'),
-                ),
-              ],
-            ),
+            const SizedBox(height: 14),
+            const _FirstAccessHint(),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _OrDivider extends StatelessWidget {
-  const _OrDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    return Row(
-      children: <Widget>[
-        Expanded(child: Divider(color: theme.dividerColor)),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text(
-            'ou',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
-              letterSpacing: 1,
-            ),
-          ),
-        ),
-        Expanded(child: Divider(color: theme.dividerColor)),
-      ],
     );
   }
 }
@@ -538,6 +446,64 @@ class _ErrorBanner extends StatelessWidget {
                     color: AppColors.dangerDark,
                     fontWeight: FontWeight.w600,
                   ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FirstAccessHint extends StatelessWidget {
+  const _FirstAccessHint();
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.indigoLight.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
+        border: Border.all(color: AppColors.indigo.withValues(alpha: 0.15)),
+      ),
+      child: Row(
+        children: <Widget>[
+          const Icon(Icons.info_outline_rounded,
+              size: 20, color: AppColors.indigo),
+          const SizedBox(width: 10),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                ),
+                children: <InlineSpan>[
+                  const TextSpan(
+                    text: 'Primeiro acesso? ',
+                    style: TextStyle(fontWeight: FontWeight.w700),
+                  ),
+                  TextSpan(
+                    text: 'admin',
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const TextSpan(text: '  /  '),
+                  TextSpan(
+                    text: 'admin123',
+                    style: TextStyle(
+                      fontFamily: 'monospace',
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const TextSpan(
+                    text: ' — troque a senha no primeiro login.',
+                  ),
+                ],
+              ),
             ),
           ),
         ],

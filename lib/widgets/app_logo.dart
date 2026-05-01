@@ -131,14 +131,12 @@ class AppLogoLockup extends StatelessWidget {
                   height: 1.0,
                   letterSpacing: -0.5,
                 ),
-                children: <InlineSpan>[
-                  const TextSpan(text: 'Evolua'),
+                children: const <InlineSpan>[
+                  TextSpan(text: 'Evolua'),
                   TextSpan(
                     text: 'PRO',
                     style: TextStyle(
-                      color: fg == Colors.white
-                          ? Colors.white
-                          : AppColors.teal,
+                      color: AppColors.pink,
                       fontWeight: FontWeight.w700,
                     ),
                   ),

@@ -23,16 +23,13 @@ class PlatformCheck {
   // Regras de negócio do EvoluaPRO
   // ============================================================
 
-  /// Plataformas onde o uso é gratuito mas com anúncios:
-  /// **apenas Android e iOS** — nem desktop, nem web.
+  /// Mobile usa o app gratuitamente, porém com anúncios obrigatórios
+  /// a cada evolução gerada (2 ADs de 30s). Premium remove os anúncios.
   static bool get supportsFreeWithAds => isMobile;
 
-  /// Plataformas onde a assinatura é obrigatória para usar o app:
-  /// **Windows** (e demais desktops por extensão).
-  ///
-  /// O Windows é o caso citado explicitamente; por consistência
-  /// estendemos para macOS/Linux. Ajustar aqui caso a regra mude.
-  static bool get requiresPremium => isDesktop;
+  /// Assinatura obrigatória APENAS no Windows.
+  /// macOS e Linux têm acesso livre (sem ads, sem gate de assinatura).
+  static bool get requiresPremium => isWindows;
 
   /// Plataformas onde o Google Sign-In nativo (`google_sign_in`) tem
   /// suporte oficial. Em desktops o plugin não roda — usamos um fallback

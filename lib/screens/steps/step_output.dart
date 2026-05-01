@@ -3,9 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/evolution_provider.dart';
+import '../../providers/subscription_provider.dart';
+import '../../services/ad_service.dart';
 import '../../services/export_service.dart';
 import '../../utils/markdown_bold.dart';
+import '../../utils/platform_check.dart';
 import '../../widgets/action_button.dart';
+import '../subscription/plans_screen.dart';
 
 class StepOutput extends StatefulWidget {
   const StepOutput({super.key});
@@ -16,6 +20,10 @@ class StepOutput extends StatefulWidget {
 
 class _StepOutputState extends State<StepOutput> {
   bool _saved = false;
+
+  /// True enquanto um anúncio está sendo exibido na tela.
+  /// Impede que o usuário dispare dois anúncios simultâneos.
+  bool _showingAd = false;
 
   Future<void> _copy(String text) async {
     await Clipboard.setData(ClipboardData(text: text));
@@ -38,26 +46,70 @@ class _StepOutputState extends State<StepOutput> {
 
   void _newEvolution(EvolutionProvider p) {
     p.startNewEvolution();
-    setState(() => _saved = false);
+    setState(() {
+      _saved = false;
+      _showingAd = false;
+    });
+  }
+
+  /// Solicita ao AdService que exiba o próximo anúncio recompensado.
+  /// Quando o usuário conclui o anúncio, [EvolutionProvider.markAdWatched]
+  /// é chamado, incrementando o contador e notificando a UI via Provider.
+  Future<void> _watchNextAd(EvolutionProvider p) async {
+    if (_showingAd) return;
+    setState(() => _showingAd = true);
+
+    await AdService.instance.showRewardedInterstitial(
+      onComplete: () {
+        p.markAdWatched();
+        if (mounted) setState(() => _showingAd = false);
+      },
+      onSkipped: () {
+        // Rewarded interstitial não permite pular normalmente,
+        // mas cobrimos o caso de fechamento inesperado do SDK.
+        if (mounted) setState(() => _showingAd = false);
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final EvolutionProvider p = context.watch<EvolutionProvider>();
-    final String pName = p.form.pacienteNome.trim().isEmpty 
-        ? 'Paciente Não Identificado' 
+    final SubscriptionProvider sub = context.watch<SubscriptionProvider>();
+    final String pName = p.form.pacienteNome.trim().isEmpty
+        ? 'Paciente Não Identificado'
         : p.form.pacienteNome.trim();
 
     switch (p.status) {
       case GenerationStatus.loading:
         return const _LoadingState();
+
       case GenerationStatus.error:
         return _ErrorState(
           message: p.errorMessage ?? 'Erro desconhecido.',
           onRetry: () => p.gerarEvolucao(),
           onBack: p.previous,
         );
+
+      case GenerationStatus.idle:
+        return _IdleState(onGenerate: () => p.gerarEvolucao());
+
       case GenerationStatus.success:
+        // Em mobile sem premium: exige que o usuário assista 2 anúncios
+        // antes de visualizar o conteúdo gerado.
+        // Em premium, Windows, macOS, Linux e web: acesso direto.
+        final bool needsAds =
+            PlatformCheck.supportsAds && !sub.isPremium && !p.adsCompleted;
+
+        if (needsAds) {
+          return _AdGateState(
+            adsWatched: p.adsWatched,
+            requiredAds: EvolutionProvider.requiredAdsCount,
+            isShowingAd: _showingAd,
+            onWatchAd: () => _watchNextAd(p),
+          );
+        }
+
         return _SuccessState(
           text: p.generatedText,
           patientName: pName,
@@ -68,11 +120,164 @@ class _StepOutputState extends State<StepOutput> {
           onNew: () => _newEvolution(p),
           onTextChanged: (String v) => p.setGeneratedText(v),
         );
-      case GenerationStatus.idle:
-        return _IdleState(onGenerate: () => p.gerarEvolucao());
     }
   }
 }
+
+// ============================================================
+// _AdGateState — tela de progresso de anúncios (mobile free)
+// ============================================================
+
+class _AdGateState extends StatelessWidget {
+  const _AdGateState({
+    required this.adsWatched,
+    required this.requiredAds,
+    required this.isShowingAd,
+    required this.onWatchAd,
+  });
+
+  final int adsWatched;
+  final int requiredAds;
+  final bool isShowingAd;
+  final VoidCallback onWatchAd;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme scheme = theme.colorScheme;
+    final int remaining = requiredAds - adsWatched;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            // Ícone principal
+            Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(
+                color: scheme.primary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.play_circle_outline_rounded,
+                color: scheme.primary,
+                size: 38,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // Título
+            Text(
+              'Quase lá!',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+
+            // Descrição
+            Text(
+              'Assista $remaining '
+              '${remaining == 1 ? 'anúncio' : 'anúncios'} '
+              'de 30 segundos para liberar a sua evolução.',
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurface.withValues(alpha: 0.7),
+              ),
+            ),
+            const SizedBox(height: 28),
+
+            // Indicador de progresso animado (bolinhas)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List<Widget>.generate(requiredAds, (int i) {
+                final bool done = i < adsWatched;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOut,
+                    width: done ? 36 : 14,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: done
+                          ? scheme.primary
+                          : scheme.primary.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(7),
+                    ),
+                    child: done
+                        ? const Center(
+                            child: Icon(
+                              Icons.check,
+                              size: 10,
+                              color: Colors.white,
+                            ),
+                          )
+                        : null,
+                  ),
+                );
+              }),
+            ),
+            const SizedBox(height: 28),
+
+            // Botão principal: assistir anúncio
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: isShowingAd ? null : onWatchAd,
+                icon: isShowingAd
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.play_arrow_rounded),
+                label: Text(
+                  isShowingAd
+                      ? 'Anúncio em exibição...'
+                      : 'Assistir anúncio ${adsWatched + 1} de $requiredAds',
+                ),
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Opção de assinar (remove os anúncios)
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const PlansScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.workspace_premium_rounded, size: 18),
+              label: const Text('Assinar e usar sem anúncios'),
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 16,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ============================================================
+// _LoadingState
+// ============================================================
 
 class _LoadingState extends StatelessWidget {
   const _LoadingState();
@@ -106,6 +311,10 @@ class _LoadingState extends StatelessWidget {
     );
   }
 }
+
+// ============================================================
+// _ErrorState
+// ============================================================
 
 class _ErrorState extends StatelessWidget {
   const _ErrorState({
@@ -148,8 +357,9 @@ class _ErrorState extends StatelessWidget {
               decoration: BoxDecoration(
                 color: scheme.error.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(10),
-                border:
-                    Border.all(color: scheme.error.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: scheme.error.withValues(alpha: 0.3),
+                ),
               ),
               child: Text(
                 message,
@@ -182,6 +392,10 @@ class _ErrorState extends StatelessWidget {
     );
   }
 }
+
+// ============================================================
+// _IdleState
+// ============================================================
 
 class _IdleState extends StatelessWidget {
   const _IdleState({required this.onGenerate});
@@ -224,6 +438,10 @@ class _IdleState extends StatelessWidget {
     );
   }
 }
+
+// ============================================================
+// _SuccessState
+// ============================================================
 
 class _SuccessState extends StatefulWidget {
   const _SuccessState({
@@ -275,7 +493,7 @@ class _SuccessStateState extends State<_SuccessState> {
   }
 
   void _showExportOptions(BuildContext context) {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
@@ -289,38 +507,56 @@ class _SuccessStateState extends State<_SuccessState> {
               children: <Widget>[
                 Text(
                   'Exportar Documento',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(height: 16),
                 ListTile(
-                  leading: const Icon(Icons.picture_as_pdf_rounded, color: Colors.red, size: 32),
+                  leading: const Icon(Icons.picture_as_pdf_rounded,
+                      color: Colors.red, size: 32),
                   title: const Text('Salvar como PDF'),
-                  subtitle: const Text('Gera um documento pronto para impressão.'),
+                  subtitle:
+                      const Text('Gera um documento pronto para impressão.'),
                   onTap: () async {
                     Navigator.pop(ctx);
                     try {
-                      await ExportService.exportToPdf(widget.text, widget.patientName);
+                      await ExportService.exportToPdf(
+                        widget.text,
+                        widget.patientName,
+                      );
                     } catch (e) {
                       if (ctx.mounted) {
                         ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(content: Text('Erro ao exportar PDF: $e')),
+                          SnackBar(
+                            content: Text('Erro ao exportar PDF: $e'),
+                          ),
                         );
                       }
                     }
                   },
                 ),
                 ListTile(
-                  leading: const Icon(Icons.text_snippet_rounded, color: Colors.blue, size: 32),
+                  leading: const Icon(Icons.text_snippet_rounded,
+                      color: Colors.blue, size: 32),
                   title: const Text('Compartilhar Texto'),
-                  subtitle: const Text('Envia para outros apps (WhatsApp, Word, Email).'),
+                  subtitle: const Text(
+                    'Envia para outros apps (WhatsApp, Word, Email).',
+                  ),
                   onTap: () async {
                     Navigator.pop(ctx);
                     try {
-                      await ExportService.exportToText(widget.text, widget.patientName);
+                      await ExportService.exportToText(
+                        widget.text,
+                        widget.patientName,
+                      );
                     } catch (e) {
                       if (ctx.mounted) {
                         ScaffoldMessenger.of(ctx).showSnackBar(
-                          SnackBar(content: Text('Erro ao compartilhar texto: $e')),
+                          SnackBar(
+                            content: Text('Erro ao compartilhar texto: $e'),
+                          ),
                         );
                       }
                     }
@@ -341,6 +577,7 @@ class _SuccessStateState extends State<_SuccessState> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: <Widget>[
+        // Banner de status (salvo ou recém-gerado)
         Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
@@ -372,6 +609,8 @@ class _SuccessStateState extends State<_SuccessState> {
           ),
         ),
         const SizedBox(height: 16),
+
+        // Card com o texto da evolução
         Card(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
@@ -388,10 +627,10 @@ class _SuccessStateState extends State<_SuccessState> {
                     const SizedBox(width: 8),
                     Text(
                       'Evolução de Enfermagem',
-                      style:
-                          Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
                   ],
                 ),
@@ -414,6 +653,8 @@ class _SuccessStateState extends State<_SuccessState> {
           ),
         ),
         const SizedBox(height: 18),
+
+        // Botões de ação
         Wrap(
           alignment: WrapAlignment.end,
           spacing: 10,

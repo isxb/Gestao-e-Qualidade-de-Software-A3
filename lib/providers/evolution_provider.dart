@@ -39,7 +39,18 @@ class EvolutionProvider extends ChangeNotifier {
   String? _errorMessage;
   AppUser? _currentUser;
 
+  // ---------- Controle de anúncios (mobile free) ----------
+  /// Quantos anúncios foram assistidos até o fim para a evolução atual.
+  /// O conteúdo é liberado somente após [requiredAdsCount] conclusões.
+  int _adsWatched = 0;
+
+  /// Número de anúncios obrigatórios por evolução gerada.
+  static const int requiredAdsCount = 2;
+
+  // ============================================================
   // Getters
+  // ============================================================
+
   EvolutionForm get form => _form;
   List<Medication> get medications => List<Medication>.unmodifiable(_medications);
   List<Infusion> get infusions => List<Infusion>.unmodifiable(_infusions);
@@ -51,8 +62,19 @@ class EvolutionProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isLoading => _status == GenerationStatus.loading;
 
-  /// Ajuste o usuário ativo para que os eventos de evolução sejam
-  /// atribuídos corretamente. Chamado pelo AuthProvider via listener.
+  /// Quantos anúncios já foram concluídos para a evolução atual.
+  int get adsWatched => _adsWatched;
+
+  /// True quando o usuário já assistiu todos os anúncios obrigatórios
+  /// e o conteúdo da evolução pode ser exibido.
+  bool get adsCompleted => _adsWatched >= requiredAdsCount;
+
+  // ============================================================
+  // Bind de usuário
+  // ============================================================
+
+  /// Ajusta o usuário ativo para que os eventos de evolução sejam
+  /// atribuídos corretamente. Chamado pelo ProxyProvider ao logar/deslogar.
   void bindCurrentUser(AppUser? user) {
     _currentUser = user;
     if (user != null) {
@@ -82,7 +104,7 @@ class EvolutionProvider extends ChangeNotifier {
     Map<String, dynamic> metadata = const <String, dynamic>{},
   }) async {
     final AppUser? u = _currentUser;
-    if (u == null) return; 
+    if (u == null) return;
     await _logs.record(
       userId: u.id,
       userDisplayName: u.displayName,
@@ -92,7 +114,10 @@ class EvolutionProvider extends ChangeNotifier {
     );
   }
 
-  // ---------- Navegação ----------
+  // ============================================================
+  // Navegação
+  // ============================================================
+
   void setStep(int step) {
     if (step < 0 || step > 8) return;
     _currentStep = step;
@@ -113,7 +138,10 @@ class EvolutionProvider extends ChangeNotifier {
     }
   }
 
-  // ---------- Form updates ----------
+  // ============================================================
+  // Atualizações de formulário
+  // ============================================================
+
   void updateForm(EvolutionForm Function(EvolutionForm) change) {
     _form = change(_form);
     notifyListeners();
@@ -190,7 +218,10 @@ class EvolutionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ---------- Medicações ----------
+  // ============================================================
+  // Medicações
+  // ============================================================
+
   void addMedication(Medication med) {
     if (med.nome.trim().isEmpty) return;
     _medications = <Medication>[..._medications, med];
@@ -203,7 +234,10 @@ class EvolutionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ---------- Infusões ----------
+  // ============================================================
+  // Infusões
+  // ============================================================
+
   void addInfusion(Infusion inf) {
     if (inf.nome.trim().isEmpty) return;
     _infusions = <Infusion>[..._infusions, inf];
@@ -216,7 +250,10 @@ class EvolutionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ---------- Comorbidades ----------
+  // ============================================================
+  // Comorbidades
+  // ============================================================
+
   void addComorbidity(String value) {
     final String v = value.trim();
     if (v.isEmpty) return;
@@ -231,17 +268,23 @@ class EvolutionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ---------- Geração ----------
+  // ============================================================
+  // Geração
+  // ============================================================
+
   Future<void> gerarEvolucao() async {
     _status = GenerationStatus.loading;
     _errorMessage = null;
     _generatedText = '';
     _currentStep = 8;
+    // Reseta o contador de anúncios: cada nova evolução gerada exige
+    // que o usuário mobile free assista os 2 anúncios novamente.
+    _adsWatched = 0;
     notifyListeners();
 
     final Stopwatch sw = Stopwatch()..start();
     try {
-      // Pequeno atraso artificial apenas para feedback visual na interface
+      // Pequeno atraso artificial apenas para feedback visual na interface.
       await Future.delayed(const Duration(milliseconds: 600));
 
       final String text = _generator.generate(
@@ -274,12 +317,37 @@ class EvolutionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ============================================================
+  // Controle de anúncios
+  // ============================================================
+
+  /// Registra a conclusão de um anúncio recompensado.
+  ///
+  /// Deve ser chamado pelo `AdService` dentro do callback
+  /// `onUserEarnedReward`, garantindo que o usuário realmente assistiu.
+  /// Notifica os listeners para que o `StepOutput` atualize a UI
+  /// (progressão do indicador e, ao atingir [requiredAdsCount], liberação
+  /// do conteúdo da evolução).
+  void markAdWatched() {
+    if (_adsWatched < requiredAdsCount) {
+      _adsWatched++;
+      notifyListeners();
+    }
+  }
+
+  // ============================================================
+  // Texto gerado
+  // ============================================================
+
   void setGeneratedText(String text) {
     _generatedText = text;
     notifyListeners();
   }
 
-  // ---------- Banco de Dados ----------
+  // ============================================================
+  // Banco de dados (evoluções salvas)
+  // ============================================================
+
   Future<SavedEvolution> saveCurrentEvolution() async {
     final DateFormat dateFmt = DateFormat('dd/MM/yyyy');
     final DateFormat timeFmt = DateFormat('HH:mm');
@@ -336,11 +404,16 @@ class EvolutionProvider extends ChangeNotifier {
     await _log(
       ActivityType.evolutionCopied,
       'Texto da evolução copiado para a área de transferência.',
-      metadata: <String, dynamic>{if (evolutionId != null) 'evolutionId': evolutionId},
+      metadata: <String, dynamic>{
+        if (evolutionId != null) 'evolutionId': evolutionId,
+      },
     );
   }
 
-  // ---------- Reset ----------
+  // ============================================================
+  // Reset
+  // ============================================================
+
   void startNewEvolution() {
     _form = EvolutionForm();
     if (_currentUser != null) {
@@ -356,9 +429,14 @@ class EvolutionProvider extends ChangeNotifier {
     _status = GenerationStatus.idle;
     _errorMessage = null;
     _currentStep = 0;
+    _adsWatched = 0;
     _log(ActivityType.evolutionStarted, 'Nova evolução iniciada.');
     notifyListeners();
   }
+
+  // ============================================================
+  // Helpers internos
+  // ============================================================
 
   List<String> _toggle(List<String> list, String value) {
     if (list.contains(value)) {
