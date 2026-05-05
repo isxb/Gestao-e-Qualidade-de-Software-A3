@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/activity_log.dart';
+import '../models/evolution_template.dart';
 import '../models/saved_evolution.dart';
 import '../models/subscription.dart';
 import '../models/user.dart';
@@ -21,6 +22,7 @@ class StorageService {
   static const String _kSessionKey = 'evoluaPro_session_v1';
   static const String _kThemeKey = 'evoluaPro_theme';
   static const String _kSubscriptionsKey = 'evoluaPro_subscriptions';
+  static const String _kTemplatesKey = 'evoluaPro_templates';
 
   static const int _maxLogs = 5000;
 
@@ -237,5 +239,65 @@ class StorageService {
       subscriptions.values.map((UserSubscription s) => s.toJson()).toList(),
     );
     await _store.setString(_kSubscriptionsKey, raw);
+  }
+
+  // ============================================================
+  // Templates (por conta de usuário)
+  // ============================================================
+  List<EvolutionTemplate> loadTemplates({required String userId}) {
+    final String? raw = _store.getString(_kTemplatesKey);
+    if (raw == null || raw.isEmpty) return <EvolutionTemplate>[];
+    try {
+      final dynamic decoded = jsonDecode(raw);
+      if (decoded is! List) return <EvolutionTemplate>[];
+      return decoded
+          .whereType<Map<dynamic, dynamic>>()
+          .map((Map<dynamic, dynamic> m) =>
+              EvolutionTemplate.fromJson(m.cast<String, dynamic>()))
+          .where((EvolutionTemplate t) => t.userId == userId)
+          .toList();
+    } catch (_) {
+      return <EvolutionTemplate>[];
+    }
+  }
+
+  Future<void> _saveAllTemplates(List<EvolutionTemplate> all) async {
+    final String raw =
+        jsonEncode(all.map((EvolutionTemplate t) => t.toJson()).toList());
+    await _store.setString(_kTemplatesKey, raw);
+  }
+
+  Future<void> upsertTemplate(EvolutionTemplate template) async {
+    final List<EvolutionTemplate> all = _loadAllTemplates();
+    final int idx = all.indexWhere((EvolutionTemplate t) => t.id == template.id);
+    if (idx >= 0) {
+      all[idx] = template;
+    } else {
+      all.insert(0, template);
+    }
+    await _saveAllTemplates(all);
+  }
+
+  Future<void> deleteTemplate(String templateId) async {
+    final List<EvolutionTemplate> all = _loadAllTemplates()
+        .where((EvolutionTemplate t) => t.id != templateId)
+        .toList();
+    await _saveAllTemplates(all);
+  }
+
+  List<EvolutionTemplate> _loadAllTemplates() {
+    final String? raw = _store.getString(_kTemplatesKey);
+    if (raw == null || raw.isEmpty) return <EvolutionTemplate>[];
+    try {
+      final dynamic decoded = jsonDecode(raw);
+      if (decoded is! List) return <EvolutionTemplate>[];
+      return decoded
+          .whereType<Map<dynamic, dynamic>>()
+          .map((Map<dynamic, dynamic> m) =>
+              EvolutionTemplate.fromJson(m.cast<String, dynamic>()))
+          .toList();
+    } catch (_) {
+      return <EvolutionTemplate>[];
+    }
   }
 }

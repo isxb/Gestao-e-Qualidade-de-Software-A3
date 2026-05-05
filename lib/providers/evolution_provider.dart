@@ -94,10 +94,6 @@ class EvolutionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void refreshAPIStatus() {
-    notifyListeners();
-  }
-
   Future<void> _log(
     ActivityType type,
     String description, {

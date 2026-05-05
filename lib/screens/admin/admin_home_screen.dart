@@ -281,7 +281,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       _QuickItem(
         icon: Icons.health_and_safety_rounded,
         title: 'Saúde do sistema',
-        subtitle: 'API Gemini, sessão e dados',
+        subtitle: 'Sessão, dados e sistema',
         accent: AppColors.sky,
         onTap: () {
           Navigator.of(context).push(

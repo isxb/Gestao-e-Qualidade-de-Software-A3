@@ -17,6 +17,7 @@ import 'generator_screen.dart';
 import 'settings_screen.dart';
 import 'subscription/manage_subscription_screen.dart';
 import 'subscription/plans_screen.dart';
+import 'templates/templates_screen.dart';
 import 'view_saved_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -415,6 +416,17 @@ class _SecondaryActions extends StatelessWidget {
             ),
           ),
           _SecondaryTile(
+            icon: Icons.bookmark_rounded,
+            title: 'Meus Templates',
+            subtitle: 'Crie e gerencie presets para acelerar suas evoluções.',
+            accent: AppColors.indigo,
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => const TemplatesScreen(),
+              ),
+            ),
+          ),
+          _SecondaryTile(
             icon: Icons.info_outline_rounded,
             title: 'Sobre o sistema',
             subtitle: 'Versão, privacidade e como o app armazena seus dados.',
@@ -427,11 +439,17 @@ class _SecondaryActions extends StatelessWidget {
           ),
         ];
         if (twoCols) {
-          return Row(
+          return Column(
             children: <Widget>[
-              Expanded(child: tiles[0]),
-              const SizedBox(width: 12),
-              Expanded(child: tiles[1]),
+              Row(
+                children: <Widget>[
+                  Expanded(child: tiles[0]),
+                  const SizedBox(width: 12),
+                  Expanded(child: tiles[1]),
+                ],
+              ),
+              const SizedBox(height: 12),
+              tiles[2],
             ],
           );
         }
@@ -440,6 +458,8 @@ class _SecondaryActions extends StatelessWidget {
             tiles[0],
             const SizedBox(height: 12),
             tiles[1],
+            const SizedBox(height: 12),
+            tiles[2],
           ],
         );
       },

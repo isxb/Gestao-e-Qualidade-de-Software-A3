@@ -142,7 +142,7 @@ class _LoginHero extends StatelessWidget {
         children: <Widget>[
           AppLogoLockup(
             logoSize: 52,
-            subtitle: 'Evoluções clínicas com IA',
+            subtitle: 'Evoluções clínicas de enfermagem',
             color: fg,
           ),
           const SizedBox(height: 14),
@@ -164,7 +164,7 @@ class _LoginHero extends StatelessWidget {
         children: <Widget>[
           AppLogoLockup(
             logoSize: 72,
-            subtitle: 'Plataforma clínica inteligente',
+            subtitle: 'Plataforma clínica de enfermagem',
             color: fg,
           ),
           const SizedBox(height: 36),
@@ -177,7 +177,7 @@ class _LoginHero extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           Text(
-            'Geração assistida por IA, histórico auditável e '
+            'Geração por template personalizado, histórico auditável e '
             'fluxos pensados para o plantão. Acesse com a sua '
             'conta para continuar.',
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(

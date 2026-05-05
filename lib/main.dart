@@ -10,6 +10,7 @@ import 'providers/admin_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/evolution_provider.dart';
 import 'providers/subscription_provider.dart';
+import 'providers/template_provider.dart';
 import 'services/ad_service.dart';
 import 'services/auth_service.dart';
 import 'services/log_service.dart';
@@ -21,7 +22,7 @@ Future<void> main() async {
   try {
     await dotenv.load(fileName: '.env');
   } catch (_) {
-    // .env é opcional — usuário pode configurar a chave no app.
+    // .env é opcional em desenvolvimento.
   }
 
   await StorageService.instance.init();
@@ -65,6 +66,16 @@ Future<void> main() async {
           update: (_, AuthProvider auth, SubscriptionProvider? previous) {
             final SubscriptionProvider p = previous ?? SubscriptionProvider();
             p.bindUser(auth.currentUser);
+            return p;
+          },
+        ),
+        // Templates por conta: ao logar carrega os templates do usuário;
+        // ao deslogar, limpa a lista.
+        ChangeNotifierProxyProvider<AuthProvider, TemplateProvider>(
+          create: (_) => TemplateProvider(),
+          update: (_, AuthProvider auth, TemplateProvider? previous) {
+            final TemplateProvider p = previous ?? TemplateProvider();
+            p.bindCurrentUser(auth.currentUser);
             return p;
           },
         ),

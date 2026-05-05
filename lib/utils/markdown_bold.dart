@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 /// Converte `**texto**` em [TextSpan] com peso bold, mantendo as quebras de
-/// linha. Usado para exibir o texto gerado pelo Gemini — que usa somente
-/// marcadores simples de negrito em cima de texto plano.
+/// linha. Usado para exibir o texto gerado pelo template — marcadores simples
+/// de negrito em cima de texto plano.
 class BoldMarkdown extends StatelessWidget {
   const BoldMarkdown(
     this.text, {

@@ -36,9 +36,11 @@ enum ActivityType {
   evolutionDeleted,
   evolutionCopied,
 
-  // configurações
-  apiKeyConfigured,
-  apiKeyRemoved,
+  // templates
+  templateSaved,
+  templateUpdated,
+  templateDeleted,
+  templateApplied,
 
   // navegação / genérico
   screenViewed,
@@ -80,8 +82,10 @@ extension ActivityTypeX on ActivityType {
       case ActivityType.evolutionDeleted:
       case ActivityType.evolutionCopied:
         return LogCategory.evolution;
-      case ActivityType.apiKeyConfigured:
-      case ActivityType.apiKeyRemoved:
+      case ActivityType.templateSaved:
+      case ActivityType.templateUpdated:
+      case ActivityType.templateDeleted:
+      case ActivityType.templateApplied:
         return LogCategory.settings;
       case ActivityType.screenViewed:
       case ActivityType.custom:
@@ -140,10 +144,14 @@ extension ActivityTypeX on ActivityType {
         return Icons.delete_rounded;
       case ActivityType.evolutionCopied:
         return Icons.copy_rounded;
-      case ActivityType.apiKeyConfigured:
-        return Icons.vpn_key_rounded;
-      case ActivityType.apiKeyRemoved:
-        return Icons.key_off_rounded;
+      case ActivityType.templateSaved:
+        return Icons.bookmark_add_rounded;
+      case ActivityType.templateUpdated:
+        return Icons.bookmark_rounded;
+      case ActivityType.templateDeleted:
+        return Icons.bookmark_remove_rounded;
+      case ActivityType.templateApplied:
+        return Icons.auto_fix_high_rounded;
       case ActivityType.screenViewed:
         return Icons.visibility_rounded;
       case ActivityType.custom:
@@ -204,10 +212,14 @@ extension ActivityTypeX on ActivityType {
         return 'Evolução excluída';
       case ActivityType.evolutionCopied:
         return 'Evolução copiada';
-      case ActivityType.apiKeyConfigured:
-        return 'API Key configurada';
-      case ActivityType.apiKeyRemoved:
-        return 'API Key removida';
+      case ActivityType.templateSaved:
+        return 'Template criado';
+      case ActivityType.templateUpdated:
+        return 'Template atualizado';
+      case ActivityType.templateDeleted:
+        return 'Template excluído';
+      case ActivityType.templateApplied:
+        return 'Template aplicado';
       case ActivityType.screenViewed:
         return 'Tela acessada';
       case ActivityType.custom:
