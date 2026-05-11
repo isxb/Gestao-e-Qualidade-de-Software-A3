@@ -222,7 +222,7 @@ class _TemplateEditScreenState extends State<TemplateEditScreen> {
     final bool isNew = widget.template == null;
 
     return Scaffold(
-      appBar: AppHeader(showHomeButton: false),
+      appBar: const AppHeader(showHomeButton: false),
       body: Form(
         key: _formKey,
         child: Center(
@@ -606,7 +606,7 @@ class _TemplateEditScreenState extends State<TemplateEditScreen> {
                         LabeledField(
                           label: 'COREN — UF',
                           child: DropdownButtonFormField<String>(
-                            value: _corenUF,
+                            initialValue: _corenUF,
                             items: _ufList
                                 .map((String uf) => DropdownMenuItem<String>(
                                       value: uf,

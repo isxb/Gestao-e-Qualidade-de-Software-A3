@@ -21,7 +21,7 @@ class TemplateProvider extends ChangeNotifier {
 
   List<EvolutionTemplate> _templates = <EvolutionTemplate>[];
   AppUser? _currentUser;
-  bool _loading = false;
+  final bool _loading = false;
   String? _error;
 
   List<EvolutionTemplate> get templates =>

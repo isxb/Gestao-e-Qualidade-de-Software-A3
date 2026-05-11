@@ -201,13 +201,13 @@ class _TemplateCard extends StatelessWidget {
                     ),
                   ),
                   const PopupMenuDivider(),
-                  PopupMenuItem<String>(
+                  const PopupMenuItem<String>(
                     value: 'delete',
                     child: Row(
                       children: <Widget>[
                         Icon(Icons.delete_rounded,
                             size: 18, color: AppColors.danger),
-                        const SizedBox(width: 10),
+                        SizedBox(width: 10),
                         Text(
                           'Excluir',
                           style: TextStyle(color: AppColors.danger),
@@ -241,7 +241,7 @@ class _EmptyState extends StatelessWidget {
             Container(
               width: 72,
               height: 72,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: AppColors.indigoLight,
                 shape: BoxShape.circle,
               ),

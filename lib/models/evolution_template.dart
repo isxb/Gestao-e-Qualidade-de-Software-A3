@@ -320,7 +320,7 @@ class EvolutionTemplate {
       };
 
   static EvolutionTemplate fromJson(Map<String, dynamic> j) {
-    List<String> _list(String key) {
+    List<String> list(String key) {
       final dynamic v = j[key];
       if (v is List) return v.cast<String>();
       return <String>[];
@@ -338,7 +338,7 @@ class EvolutionTemplate {
       transporte: (j['transporte'] as String?) ?? 'maca com monitorização cardíaca contínua',
       suporteTransporte: (j['suporteTransporte'] as String?) ?? 'oxigenoterapia suplementar via cateter nasal',
       consciencia: (j['consciencia'] as String?) ?? 'consciente e orientado em tempo e espaço',
-      aspectosAdmissao: _list('aspectosAdmissao'),
+      aspectosAdmissao: list('aspectosAdmissao'),
       alergiasOp: (j['alergiasOp'] as String?) ?? 'nega',
       adesao: (j['adesao'] as String?) ?? 'com boa adesão à terapêutica',
       cirurgiaOp: (j['cirurgiaOp'] as String?) ?? 'nega cirurgias anteriores',
@@ -356,11 +356,11 @@ class EvolutionTemplate {
       pupilas: (j['pupilas'] as String?) ?? 'isocóricas e fotorreagentes',
       rass: (j['rass'] as String?) ?? '0 (alerta e calmo)',
       o2: (j['o2'] as String?) ?? 'em ar ambiente',
-      peleAspecto: _list('peleAspecto'),
+      peleAspecto: list('peleAspecto'),
       tipoAcesso: (j['tipoAcesso'] as String?) ?? 'Acesso intravenoso periférico',
       localAcesso: (j['localAcesso'] as String?) ?? '',
       calibreCateter: (j['calibreCateter'] as String?) ?? 'nº 20',
-      outrosDisp: _list('outrosDisp'),
+      outrosDisp: list('outrosDisp'),
       enfermeiroNome: (j['enfermeiroNome'] as String?) ?? '',
       corenUF: (j['corenUF'] as String?) ?? 'RJ',
       corenNumero: (j['corenNumero'] as String?) ?? '',

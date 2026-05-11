@@ -253,7 +253,7 @@ class _TemplatePicker extends StatelessWidget {
                 return ListTile(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: AppColors.indigoLight),
+                    side: const BorderSide(color: AppColors.indigoLight),
                   ),
                   leading: const CircleAvatar(
                     backgroundColor: AppColors.indigoLight,
