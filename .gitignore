@@ -50,3 +50,16 @@ linux/flutter/ephemeral/
 # OS
 .DS_Store
 Thumbs.db
+
+# Cobertura de testes (gerado por flutter test --coverage)
+coverage/
+
+# Claude Code (configuração local da IDE — não faz parte do projeto)
+.claude/
+
+# Relatório acadêmico e arquivos temporários do Word (~$)
+~$*.docx
+~$*.doc
+
+# Pasta temporária usada para gerar o relatório .docx
+C:/Temp/docx_report/

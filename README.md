@@ -205,8 +205,30 @@ lib/
 ## 🧪 Testes
 
 ```bash
+# Executar todos os testes
 flutter test
+
+# Executar com relatório de cobertura
+flutter test --coverage
 ```
+
+### Suíte de testes (Fase 2 – A3 Qualidade de Software)
+
+| Nível | Arquivo | Testes |
+|---|---|---|
+| Unitário (caixa branca) | `test/services/crypto_service_test.dart` | 25 |
+| Unitário (caixa preta) | `test/models/user_test.dart` | 12 |
+| Unitário (caixa preta) | `test/models/medication_test.dart` | 9 |
+| Unitário (caixa preta) | `test/models/infusion_test.dart` | 6 |
+| Unitário (caixa preta) | `test/models/saved_evolution_test.dart` | 5 |
+| Unitário (caixa preta) | `test/evolution_form_test.dart` | 4 |
+| Integração | `test/models/evolution_template_test.dart` | 9 |
+| Sistema (widget) | `test/widget_test.dart` | 9 |
+| **Total** | | **90 / 90 ✅** |
+
+**Cobertura:** 75,9% (552/727 linhas) — medida nos arquivos testados.
+
+O pipeline CI/CD (`.github/workflows/flutter_ci.yml`) executa automaticamente lint + testes + build Android a cada push no branch `main`.
 
 ---
 
