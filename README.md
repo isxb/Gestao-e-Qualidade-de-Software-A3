@@ -1,6 +1,6 @@
 # EvoluaPRO — Flutter
 
-Gerador inteligente de **evoluções de enfermagem** com IA (Google Gemini 2.5 Flash), reescrito em **Flutter** a partir do projeto React original.
+Gerador de **evoluções de enfermagem** baseado em templates clínicos, reescrito em **Flutter** a partir do projeto React original.
 
 Um único código-fonte roda em **Android, iOS, Windows, macOS, Linux e Web**, com tema claro/escuro, layout totalmente responsivo (celular, tablet, desktop) e interface moderna Material 3.
 
@@ -11,11 +11,11 @@ Um único código-fonte roda em **Android, iOS, Windows, macOS, Linux e Web**, c
 - **Multiplataforma nativa**: mesmo app em Android / iOS / Windows (.exe) / macOS / Linux / Web.
 - **Responsivo de verdade**: grid que se adapta de 1 coluna (celular) até 3 colunas (desktop), paddings e larguras calculados por `MediaQuery`.
 - **Tema claro e escuro** automáticos (respeita o modo do sistema).
-- **Configuração da API Key em tempo de execução** (tela de Ajustes): o app distribuído (APK / .exe / .ipa) funciona sem precisar ser reconstruído com a chave embutida.
+- **Templates por conta**: cada usuário cria e gerencia seus próprios templates de evolução, personalizados para sua rotina clínica.
 - **Persistência cross-platform** via `shared_preferences` — sem banco nativo, funciona igual em todas as plataformas.
 - **Fonte das letras** (Google Fonts *DM Sans* + *DM Serif Display*) baixada em runtime: zero configuração de assets.
 - **Arquitetura escalável**: `models/`, `services/`, `providers/`, `widgets/`, `screens/` bem separados — fácil de estender.
-- **Correlações clínicas cruzadas preservadas** (ex.: TOT/TQT automaticamente marcam ventilação mecânica; SVD preenche aspecto da diurese; “Sem acesso venoso” zera os campos de acesso).
+- **Correlações clínicas cruzadas preservadas** (ex.: TOT/TQT automaticamente marcam ventilação mecânica; SVD preenche aspecto da diurese; "Sem acesso venoso" zera os campos de acesso).
 
 ---
 
@@ -26,7 +26,6 @@ Um único código-fonte roda em **Android, iOS, Windows, macOS, Linux e Web**, c
 - Para **Android**: Android Studio + SDK / NDK
 - Para **iOS**: Xcode (macOS apenas)
 - Para **Windows** (`.exe`): Visual Studio 2022 com **"Desktop development with C++"**
-- Uma **API Key do Google Gemini** ([criar gratuitamente](https://aistudio.google.com/app/apikey))
 
 ---
 
@@ -34,12 +33,9 @@ Um único código-fonte roda em **Android, iOS, Windows, macOS, Linux e Web**, c
 
 ### 1. Gere as pastas nativas das plataformas
 
-Este ZIP contém apenas o código Dart (`lib/`), `pubspec.yaml` e configs. As pastas `android/`, `ios/`, `windows/`, `macos/`, `linux/` e `web/` precisam ser geradas pelo Flutter CLI (padrão moderno — é muito mais leve que incluir todas no zip).
-
-Entre na pasta do projeto e execute **uma única vez**:
+As pastas `android/`, `ios/`, `windows/`, `macos/`, `linux/` e `web/` precisam ser geradas pelo Flutter CLI. Entre na pasta do projeto e execute **uma única vez**:
 
 ```bash
-cd EvoluaPRO_Flutter
 flutter create . --org com.evoluapro --project-name evolua_pro --platforms=android,ios,windows,macos,linux,web
 ```
 
@@ -51,24 +47,7 @@ Isso cria todos os diretórios nativos preservando os arquivos Dart já existent
 flutter pub get
 ```
 
-### 3. Configure a API Key do Gemini
-
-Você tem **duas opções**:
-
-**Opção A — Tela de Ajustes (recomendado para uso no celular / .exe):**
-Abra o app → ícone de engrenagem → cole a API Key → *Salvar*.
-A chave fica guardada localmente (shared_preferences) e é usada em todas as gerações.
-
-**Opção B — Arquivo `.env` (recomendado para desenvolvimento):**
-Edite o arquivo `.env` na raiz do projeto:
-
-```
-GEMINI_API_KEY=SUA_CHAVE_AQUI
-```
-
-> A ordem de prioridade é: chave da Tela de Ajustes → `.env`. Se nenhuma estiver configurada, o app mostra um aviso na Home e um botão de atalho para a tela de Ajustes quando você tentar gerar uma evolução.
-
-### 4. Rode o app
+### 3. Rode o app
 
 ```bash
 # Android (emulador ou dispositivo USB)
@@ -139,14 +118,14 @@ lib/
 │
 ├── models/                        # imutáveis, copyWith, JSON
 │   ├── evolution_form.dart        # modelo principal do formulário (60+ campos)
+│   ├── evolution_template.dart    # template reutilizável por conta de usuário
 │   ├── medication.dart
 │   ├── infusion.dart
 │   └── saved_evolution.dart
 │
 ├── services/
-│   ├── gemini_service.dart        # chamada à API do Gemini
-│   ├── prompt_builder.dart        # monta o prompt de 3500+ chars
-│   └── storage_service.dart       # shared_preferences (evoluções + API key)
+│   ├── crypto_service.dart        # PBKDF2-HMAC-SHA256 (hash de senha)
+│   └── storage_service.dart       # shared_preferences (evoluções + templates)
 │
 ├── providers/
 │   └── evolution_provider.dart    # ChangeNotifier: state + correlações + geração
@@ -159,6 +138,7 @@ lib/
 │   ├── progress_stepper.dart
 │   ├── responsive_grid.dart
 │   ├── section_card.dart
+│   ├── stat_card.dart
 │   ├── tag_chip.dart
 │   └── vital_card.dart
 │
@@ -166,8 +146,8 @@ lib/
 │   └── markdown_bold.dart         # renderiza **bold** do output
 │
 └── screens/
-    ├── home_screen.dart           # home com 2 cards grandes
-    ├── settings_screen.dart       # API key em runtime
+    ├── home_screen.dart           # home com cards de resumo
+    ├── settings_screen.dart       # configurações da conta
     ├── database_screen.dart       # banco de evoluções salvas
     ├── view_saved_screen.dart     # visualizar / editar / copiar / deletar
     ├── generator_screen.dart      # wizard de 9 passos
@@ -189,7 +169,7 @@ lib/
 - **Models imutáveis**: cada alteração cria um novo `EvolutionForm` via `copyWith`.
 - **Escalável**: para adicionar um novo passo, basta criar um `StepX` em `screens/steps/` e registrar em `generator_screen.dart` + aumentar o total no provider.
 - **Responsivo**: `ResponsiveGrid` + `AppTheme.horizontalPadding(context)` + `AppTheme.contentMaxWidth(context)`.
-- **Clean Architecture leve**: separação UI / state / services / models. A UI nunca fala direto com a API do Gemini.
+- **Clean Architecture leve**: separação UI / state / services / models.
 
 ---
 
@@ -234,4 +214,4 @@ O pipeline CI/CD (`.github/workflows/flutter_ci.yml`) executa automaticamente li
 
 ## 📝 Licença
 
-Projeto interno. Uso com responsabilidade clínica — as evoluções geradas por IA são **sugestões** e devem sempre ser revisadas pelo enfermeiro responsável antes de ir para o prontuário.
+Projeto interno para uso clínico. As evoluções geradas devem sempre ser revisadas pelo enfermeiro responsável antes de serem inseridas no prontuário do paciente.
