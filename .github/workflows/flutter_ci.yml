@@ -1,0 +1,98 @@
+name: Flutter CI — EvoluaPRO
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # ==============================================================
+  # JOB 1: Análise estática + Testes + Cobertura
+  # ==============================================================
+  test:
+    name: Testes Automatizados
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Flutter (estável)
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Criar .env mínimo para testes
+        run: |
+          cat > .env << 'EOF'
+          ASAAS_API_KEY=sandbox_test_key
+          ASAAS_BASE_URL=https://sandbox.asaas.com
+          EOF
+
+      - name: Instalar dependências
+        run: flutter pub get
+
+      - name: Análise estática (lint)
+        run: flutter analyze --no-fatal-warnings
+
+      - name: Executar testes com cobertura
+        run: flutter test --coverage --reporter=expanded
+
+      - name: Exibir resumo de cobertura
+        if: always()
+        run: |
+          if [ -f coverage/lcov.info ]; then
+            echo "=== Resumo de Cobertura ==="
+            grep -E "^(SF|LF|LH):" coverage/lcov.info | \
+              awk -F: 'BEGIN{lf=0;lh=0} /^LF/{lf+=$2} /^LH/{lh+=$2} \
+                END{printf "Linhas cobertas: %d / %d  (%.1f%%)\n", lh, lf, lf>0?lh/lf*100:0}'
+          fi
+
+      - name: Publicar relatório de cobertura (Codecov)
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          file: coverage/lcov.info
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # ==============================================================
+  # JOB 2: Build de verificação (garante que o app compila)
+  # ==============================================================
+  build:
+    name: Build Android (verificação)
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Java 17 (necessário para Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Configurar Flutter (estável)
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.22.0'
+          channel: 'stable'
+          cache: true
+
+      - name: Criar .env mínimo para build
+        run: |
+          cat > .env << 'EOF'
+          ASAAS_API_KEY=sandbox_test_key
+          ASAAS_BASE_URL=https://sandbox.asaas.com
+          EOF
+
+      - name: Instalar dependências
+        run: flutter pub get
+
+      - name: Build APK (debug)
+        run: flutter build apk --debug --no-tree-shake-icons

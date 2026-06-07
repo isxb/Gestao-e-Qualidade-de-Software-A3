@@ -10,7 +10,9 @@ class Medication {
     return Medication(
       nome: nome ?? this.nome,
       dose: dose ?? this.dose,
-      periodos: periodos ?? List<String>.from(this.periodos),
+      periodos: periodos != null
+          ? List<String>.from(periodos)
+          : List<String>.from(this.periodos),
     );
   }
 

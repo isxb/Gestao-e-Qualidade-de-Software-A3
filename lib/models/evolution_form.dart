@@ -182,8 +182,7 @@ class EvolutionForm {
     return 'Sem risco significativo';
   }
 
-  int get glasgowTotal =>
-      glasgowOcular + glasgowVerbal + glasgowMotor - glasgowPupilar;
+  int get glasgowTotal => glasgowOcular + glasgowVerbal + glasgowMotor;
 
   EvolutionForm copyWith({
     String? pacienteNome,
