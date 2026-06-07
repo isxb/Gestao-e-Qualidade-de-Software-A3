@@ -6,7 +6,7 @@
 .pub-cache/
 .pub/
 build/
-pubspec.lock
+# pubspec.lock deliberadamente NÃO ignorado — commitado para builds reproduzíveis no CI
 
 # IDE
 .idea/
