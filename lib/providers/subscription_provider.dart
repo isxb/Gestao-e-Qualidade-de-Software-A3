@@ -23,8 +23,24 @@ class SubscriptionProvider extends ChangeNotifier {
   bool get isBusy => _busy;
   String? get lastError => _lastError;
 
+  /// ===========================================================
+  /// FEATURE FLAG — LIBERAÇÃO PARA AVALIAÇÃO ACADÊMICA
+  /// ===========================================================
+  /// Quando `true`, a trava de assinatura fica DESATIVADA: o paywall
+  /// obrigatório (desktop/Windows) e os anúncios (mobile) são ignorados,
+  /// permitindo que o sistema seja usado e avaliado livremente sem uma
+  /// assinatura ativa.
+  ///
+  /// Toda a lógica de assinatura (checkout, Asaas, planos, paywall)
+  /// permanece INTACTA no código. Para reativar a trava em produção,
+  /// basta alterar este valor para `false`.
+  static const bool kBypassSubscriptionLock = true;
+
   /// Acesso premium ativo agora.
-  bool get isPremium => _subscription?.isPremium ?? false;
+  /// Com [kBypassSubscriptionLock] ligado, sempre retorna `true` para
+  /// destravar o app, sem remover a lógica real de assinatura abaixo.
+  bool get isPremium =>
+      kBypassSubscriptionLock || (_subscription?.isPremium ?? false);
 
   /// Show ads? Só em mobile e enquanto não há premium.
   bool get shouldShowAds {
