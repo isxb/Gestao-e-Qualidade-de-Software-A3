@@ -5,8 +5,10 @@ import 'package:provider/provider.dart';
 import '../../models/activity_log.dart';
 import '../../models/user.dart';
 import '../../providers/admin_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/admin_guard.dart';
 import '../../widgets/app_header.dart';
 import 'admin_home_screen.dart';
 
@@ -86,6 +88,10 @@ class _AdminLogsScreenState extends State<AdminLogsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Guard de segurança: somente administradores acessam esta tela.
+    if (!context.watch<AuthProvider>().isAdmin) {
+      return const AdminAccessDenied();
+    }
     final AdminProvider admin = context.watch<AdminProvider>();
     final ThemeData theme = Theme.of(context);
     final List<ActivityLog> logs = admin.queryLogs(

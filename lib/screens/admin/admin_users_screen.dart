@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/auth_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/admin_guard.dart';
 import '../../widgets/app_header.dart';
 import 'admin_user_detail_screen.dart';
 
@@ -252,6 +253,10 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Guard de segurança: somente administradores acessam esta tela.
+    if (!context.watch<AuthProvider>().isAdmin) {
+      return const AdminAccessDenied();
+    }
     final AdminProvider admin = context.watch<AdminProvider>();
     final List<AppUser> users = _applyFilters(admin.users);
     final ThemeData theme = Theme.of(context);

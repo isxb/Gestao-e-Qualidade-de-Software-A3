@@ -8,6 +8,7 @@ import '../../providers/admin_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_theme.dart';
+import '../../widgets/admin_guard.dart';
 import '../../widgets/app_header.dart';
 import '../../widgets/stat_card.dart';
 import 'admin_logs_screen.dart';
@@ -33,8 +34,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final AdminProvider admin = context.watch<AdminProvider>();
     final AuthProvider auth = context.watch<AuthProvider>();
+    // Guard de segurança: somente administradores acessam o painel.
+    if (!auth.isAdmin) return const AdminAccessDenied();
+
+    final AdminProvider admin = context.watch<AdminProvider>();
     final ThemeData theme = Theme.of(context);
     final List<ActivityLog> recent = admin.queryLogs(limit: 8);
     final int loginsWeek = admin.loginsInLastDays(7);

@@ -163,7 +163,14 @@ class _UserMenu extends StatelessWidget {
             ));
             break;
           case 'logout':
+            // Captura o Navigator ANTES do await: ao deslogar, o _AuthGate
+            // reconstrói para a LoginScreen na raiz, mas eventuais telas
+            // empilhadas (Ajustes, Admin, etc.) continuariam por cima.
+            // popUntil limpa a pilha até a raiz, garantindo que o usuário
+            // realmente caia na tela de login.
+            final NavigatorState navigator = Navigator.of(context);
             await context.read<AuthProvider>().logout();
+            navigator.popUntil((Route<dynamic> route) => route.isFirst);
             break;
         }
       },
