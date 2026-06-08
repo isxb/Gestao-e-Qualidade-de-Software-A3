@@ -413,8 +413,6 @@ class _LoginCard extends StatelessWidget {
                 icon: Icons.login_rounded,
               ),
             ),
-            const SizedBox(height: 14),
-            const _FirstAccessHint(),
           ],
         ),
       ),
@@ -446,64 +444,6 @@ class _ErrorBanner extends StatelessWidget {
                     color: AppColors.dangerDark,
                     fontWeight: FontWeight.w600,
                   ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FirstAccessHint extends StatelessWidget {
-  const _FirstAccessHint();
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.indigoLight.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(AppTheme.radiusSm),
-        border: Border.all(color: AppColors.indigo.withValues(alpha: 0.15)),
-      ),
-      child: Row(
-        children: <Widget>[
-          const Icon(Icons.info_outline_rounded,
-              size: 20, color: AppColors.indigo),
-          const SizedBox(width: 10),
-          Expanded(
-            child: RichText(
-              text: TextSpan(
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                ),
-                children: <InlineSpan>[
-                  const TextSpan(
-                    text: 'Primeiro acesso? ',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  TextSpan(
-                    text: 'admin',
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const TextSpan(text: '  /  '),
-                  TextSpan(
-                    text: 'admin123',
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      color: theme.colorScheme.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const TextSpan(
-                    text: ' — troque a senha no primeiro login.',
-                  ),
-                ],
-              ),
             ),
           ),
         ],
